@@ -1,8 +1,10 @@
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "my-supabase-boilerplate",
-  description: "A Next.js boilerplate with Supabase authentication and session management.",
+  title: "Invoice Manager",
+  description:
+    "An invoice management application built with Next.js, Supabase, and Tailwind CSS. Create, manage, and track your invoices with ease.",
+  icons: {
+    icon: "/casalogo2.png",
+  },
+
 };
 
 export default function RootLayout({
@@ -26,10 +33,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <link rel="icon" type="image/png" href="/casalogo2.png" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <TooltipProvider>
+          {children}
+          <Toaster position="top-right" closeButton />
+        </TooltipProvider>
       </body>
     </html>
   );
