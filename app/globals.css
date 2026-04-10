@@ -203,3 +203,14 @@
     margin: 12mm;
   }
 }
+
+/* style the scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--chart-1);
+  border-radius: 4px;
+}

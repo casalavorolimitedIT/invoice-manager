@@ -83,7 +83,7 @@ export function BusinessUnitScopeSwitcher({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-2xl! p-0 overflow-hidden">
+        <DialogContent className="max-w-2xl! p-0 overflow-hidden max-h-[80vh] overflow-y-auto">
           <DialogHeader className="border-b px-6 py-5">
             <DialogTitle>Switch Business Unit</DialogTitle>
             <DialogDescription>
