@@ -1,6 +1,8 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { getBusinessUnitScope } from "@/lib/business-unit-scope";
 import { redirectIfNotAuthenticated } from "@/lib/redirect/redirectIfNotAuthenticated";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
 
 export default async function DashboardLayout({
   children,
@@ -8,6 +10,11 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   await redirectIfNotAuthenticated();
+  const { profile } = await getCurrentUserProfile();
+  const { businessUnits, activeBusinessUnit, activeBusinessUnitId } = await getBusinessUnitScope({
+    includeArchived: true,
+  });
+
   return (
     <SidebarProvider
       style={
@@ -17,7 +24,13 @@ export default async function DashboardLayout({
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      <AppSidebar
+        variant="inset"
+        userProfile={profile}
+        businessUnits={businessUnits}
+        activeBusinessUnitId={activeBusinessUnitId}
+        activeBusinessUnitName={activeBusinessUnit?.name ?? null}
+      />
       <SidebarInset>{children}</SidebarInset>
     </SidebarProvider>
   );

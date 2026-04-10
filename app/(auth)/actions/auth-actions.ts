@@ -13,6 +13,16 @@ type CredentialsResult =
       error: string;
     };
 
+type RegistrationResult =
+  | {
+      fullName: string;
+      email: string;
+      password: string;
+    }
+  | {
+      error: string;
+    };
+
 function getCredentials(formData: FormData): CredentialsResult {
   const email = formData.get("email");
   const password = formData.get("password");
@@ -32,6 +42,31 @@ function getCredentials(formData: FormData): CredentialsResult {
   }
 
   return { email: normalizedEmail, password };
+}
+
+function getRegistrationData(formData: FormData): RegistrationResult {
+  const fullName = formData.get("fullName");
+  const credentials = getCredentials(formData);
+
+  if ("error" in credentials) {
+    return credentials;
+  }
+
+  if (typeof fullName !== "string") {
+    return { error: "Invalid form submission." };
+  }
+
+  const normalizedFullName = fullName.trim();
+
+  if (!normalizedFullName) {
+    return { error: "Full name is required." };
+  }
+
+  return {
+    fullName: normalizedFullName,
+    email: credentials.email,
+    password: credentials.password,
+  };
 }
 
 async function getBaseUrl() {
@@ -74,7 +109,7 @@ export async function login(formData: FormData) {
 }
 
 export async function register(formData: FormData) {
-  const credentials = getCredentials(formData);
+  const credentials = getRegistrationData(formData);
 
   if ("error" in credentials) {
     redirect(`/register?error=${encodeURIComponent(credentials.error)}`);
@@ -85,6 +120,11 @@ export async function register(formData: FormData) {
   const { error } = await supabase.auth.signUp({
     email: credentials.email,
     password: credentials.password,
+    options: {
+      data: {
+        full_name: credentials.fullName,
+      },
+    },
   });
 
   if (error) {

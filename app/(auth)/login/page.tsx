@@ -20,6 +20,7 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
+  const env = process.env.NODE_ENV;
 
   return (
     <>
@@ -59,13 +60,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 Forgot password?
               </Link>
             </p>
-
-            <p className="text-center text-sm text-muted-foreground">
-              No account?{" "}
-              <Link className="text-primary underline" href="/register">
-                Create one
-              </Link>
-            </p>
+            {env === "development" ? (
+              <p className="text-center text-sm text-muted-foreground">
+                No account?{" "}
+                <Link className="text-primary underline" href="/register">
+                  Create one
+                </Link>
+              </p>
+            ) : null}
           </form>
         </CardContent>
       </Card>

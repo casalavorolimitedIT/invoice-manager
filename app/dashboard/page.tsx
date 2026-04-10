@@ -1,6 +1,6 @@
 import { SiteHeader } from "@/components/site-header";
+import { getBusinessUnitScope } from "@/lib/business-unit-scope";
 import { getInvoiceStats } from "@/lib/supabase/invoices";
-import { getBusinessUnits } from "@/lib/supabase/business-units";
 import { getClients } from "@/lib/supabase/clients";
 import { formatCurrency } from "@/lib/types/invoice";
 import { Button } from "@/components/ui/button";
@@ -72,13 +72,13 @@ function QuickLink({
 }
 
 export default async function DashboardPage() {
-  const [stats, businessUnits, clients] = await Promise.all([
-    getInvoiceStats(),
-    getBusinessUnits(),
-    getClients(),
+  const { businessUnits, activeBusinessUnit, activeBusinessUnitId } = await getBusinessUnitScope();
+  const [stats, clients] = await Promise.all([
+    getInvoiceStats(activeBusinessUnitId ?? undefined),
+    getClients(activeBusinessUnitId ?? undefined),
   ]);
 
-  const currency = businessUnits[0]?.default_currency ?? "NGN";
+  const currency = activeBusinessUnit?.default_currency ?? businessUnits[0]?.default_currency ?? "NGN";
 
   return (
     <>

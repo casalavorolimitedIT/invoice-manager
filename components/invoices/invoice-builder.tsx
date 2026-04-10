@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { BusinessUnitCombobox } from "@/components/custom/business-unit-combobox";
 import {
   Select,
   SelectContent,
@@ -50,6 +51,7 @@ const PAYMENT_TERMS_OPTIONS = [
 interface InvoiceBuilderProps {
   businessUnits: BusinessUnit[];
   allClients: Client[];
+  initialBusinessUnitId?: string;
 }
 
 function todayISO() {
@@ -74,10 +76,17 @@ function FieldGroup({ children, className }: { children: React.ReactNode; classN
   return <div className={cn("space-y-4 pt-4", className)}>{children}</div>;
 }
 
-export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProps) {
+export function InvoiceBuilder({
+  businessUnits,
+  allClients,
+  initialBusinessUnitId,
+}: InvoiceBuilderProps) {
   const [isPending, startTransition] = useTransition();
 
-  const [buId, setBuId] = useState(businessUnits[0]?.id ?? "");
+  const initialBusinessUnit =
+    businessUnits.find((businessUnit) => businessUnit.id === initialBusinessUnitId) ?? businessUnits[0];
+
+  const [buId, setBuId] = useState(initialBusinessUnit?.id ?? "");
   const [clientId, setClientId] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientCompany, setClientCompany] = useState("");
@@ -85,10 +94,10 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
   const [clientAddress, setClientAddress] = useState("");
   const [issueDate, setIssueDate] = useState(todayISO());
   const [dueDate, setDueDate] = useState(
-    addDaysToDate(todayISO(), paymentTermsToDays(businessUnits[0]?.payment_terms ?? "Net 30"))
+    addDaysToDate(todayISO(), paymentTermsToDays(initialBusinessUnit?.payment_terms ?? "Net 30"))
   );
   const [paymentTerms, setPaymentTerms] = useState(
-    businessUnits[0]?.payment_terms ?? "Net 30"
+    initialBusinessUnit?.payment_terms ?? "Net 30"
   );
   const [notes, setNotes] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
@@ -285,25 +294,13 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Select Business Unit
               </Label>
-              <Select
+              <BusinessUnitCombobox
+                businessUnits={businessUnits}
                 value={buId}
-                onValueChange={(v) => v && handleBUChange(v)}
-                items={businessUnits.map((bu) => ({ value: bu.id, label: `${bu.name} (${bu.code})` }))}
-              >
-                <SelectTrigger className="w-full h-12!">
-                  <SelectValue placeholder="Choose a business unit…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {businessUnits.map((bu) => (
-                    <SelectItem key={bu.id} value={bu.id} label={`${bu.name} (${bu.code})`}>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium">{bu.name}</span>
-                        <span className="text-xs text-muted-foreground">{bu.code}{bu.category ? ` · ${bu.category}` : ""}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onValueChange={handleBUChange}
+                placeholder="Search business units..."
+                emptyText="No matching business units."
+              />
               {selectedBU && (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {selectedBU.default_currency && (
@@ -373,7 +370,7 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="clientName" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Name <span className="text-primary">*</span>
@@ -398,7 +395,7 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="clientEmail" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Email
@@ -434,7 +431,7 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
           subtitle="Invoice period and payment deadline"
         />
         <FieldGroup>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="issueDate" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Issue Date <span className="text-primary">*</span>
@@ -498,8 +495,8 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
           subtitle="Apply a discount and review the final amount"
         />
         <FieldGroup>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 space-y-1.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="space-y-1.5 sm:flex-1">
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Discount Type
               </Label>
@@ -517,7 +514,7 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-32 space-y-1.5">
+            <div className="space-y-1.5 sm:w-32">
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Amount
               </Label>
@@ -527,7 +524,7 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
                 step="0.01"
                 value={discountValue}
                 onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
-                className="text-right font-mono"
+                className="w-full text-right font-mono"
               />
             </div>
           </div>
@@ -540,8 +537,8 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
                 <span className="text-sm font-mono tabular-nums">{formatCurrency(totals.subtotal, currency)}</span>
               </div>
               {totals.discountAmount > 0 && (
-                <div className="flex justify-between items-center px-4 py-2.5">
-                  <span className="text-sm text-muted-foreground">
+                <div className="flex items-start justify-between gap-3 px-4 py-2.5">
+                  <span className="min-w-0 text-sm text-muted-foreground">
                     Discount {discountType === "percentage" ? `(${discountValue}%)` : ""}
                   </span>
                   <span className="text-sm font-mono tabular-nums text-destructive">
@@ -550,8 +547,8 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
                 </div>
               )}
               {taxRate > 0 && (
-                <div className="flex justify-between items-center px-4 py-2.5">
-                  <span className="text-sm text-muted-foreground">
+                <div className="flex items-start justify-between gap-3 px-4 py-2.5">
+                  <span className="min-w-0 text-sm text-muted-foreground">
                     {selectedBU?.tax_label ?? "Tax"} ({taxRate}%)
                   </span>
                   <span className="text-sm font-mono tabular-nums">{formatCurrency(totals.taxAmount, currency)}</span>
@@ -616,7 +613,7 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
   );
 
   const PreviewPanel = (
-    <div className="sticky top-4">
+    <div className="sticky top-4 min-w-0">
       <div className="mb-3 flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
         <HugeiconsIcon icon={ViewIcon} strokeWidth={2} className="size-3.5" />
         Live Preview
@@ -629,8 +626,8 @@ export function InvoiceBuilder({ businessUnits, allClients }: InvoiceBuilderProp
     <>
       {/* Desktop: side-by-side */}
       <div className="hidden lg:grid lg:grid-cols-[1fr_420px] gap-10 items-start">
-        <div>{FormPanel}</div>
-        <div>{PreviewPanel}</div>
+        <div className="min-w-0">{FormPanel}</div>
+        <div className="min-w-0">{PreviewPanel}</div>
       </div>
 
       {/* Mobile: tabs */}

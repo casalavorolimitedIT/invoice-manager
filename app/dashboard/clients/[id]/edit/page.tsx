@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getClient } from "@/lib/supabase/clients";
-import { getBusinessUnits } from "@/lib/supabase/business-units";
+import { getBusinessUnitScope } from "@/lib/business-unit-scope";
 import { SiteHeader } from "@/components/site-header";
 import { ClientForm } from "../../_components/client-form";
 import { updateClient } from "../../actions";
@@ -16,7 +16,7 @@ export default async function EditClientPage({ params }: Props) {
   const { id } = await params;
   const [client, businessUnits] = await Promise.all([
     getClient(id),
-    getBusinessUnits(),
+    getBusinessUnitScope().then((scope) => scope.businessUnits),
   ]);
   if (!client) notFound();
 
@@ -25,8 +25,8 @@ export default async function EditClientPage({ params }: Props) {
   return (
     <>
       <SiteHeader title={`Edit — ${client.name}`} />
-      <div className="p-4 md:p-6">
-        <div className="mb-6">
+      <div className="p-4 md:p-6 flex flex-col justify-center items-center">
+        <div className="mb-6 max-w-4xl w-full">
           <Link
             href="/dashboard/clients"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -35,7 +35,9 @@ export default async function EditClientPage({ params }: Props) {
             Back to Clients
           </Link>
         </div>
-        <ClientForm action={boundAction} defaultValues={client} businessUnits={businessUnits} />
+        <div className="max-w-4xl w-full">
+          <ClientForm action={boundAction} defaultValues={client} businessUnits={businessUnits} />
+        </div>
       </div>
     </>
   );

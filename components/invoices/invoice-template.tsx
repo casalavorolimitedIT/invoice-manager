@@ -1,6 +1,7 @@
 import type { InvoiceStatus, InvoicePreviewPayload } from "@/lib/types/invoice";
 import { formatCurrency } from "@/lib/types/invoice";
 import { cn } from "@/lib/utils";
+import SmartImage from "../custom/smart-images";
 
 interface InvoiceTemplateProps {
   payload: InvoicePreviewPayload;
@@ -90,13 +91,14 @@ export function InvoiceTemplate({
         "bg-white antialiased",
         isPrev
           ? "rounded-xl border border-zinc-200 shadow-sm overflow-y-auto"
-          : "mx-auto w-full max-w-[820px] print:max-w-none print:shadow-none print:border-0",
+          : "mx-auto w-full max-w-205 print:max-w-none print:shadow-none print:border-0",
       )}
       style={{
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         fontSize: isPrev ? 11 : 14,
         lineHeight: isPrev ? 1.5 : 1.6,
         color: "#3f3f46",
+        overflowWrap: "anywhere",
         WebkitPrintColorAdjust: "exact",
         printColorAdjust: "exact",
       } as React.CSSProperties}
@@ -121,12 +123,15 @@ export function InvoiceTemplate({
             {business.logoUrl ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <SmartImage
                   src={business.logoUrl}
                   alt={business.name}
                   crossOrigin="anonymous"
+                  width={80}
+                  height={80}
+                  className={`${isPrev ? "h-7 w-7" : "h-20 w-20"}  aspect-square object-fill`}
                   style={{
-                    height: isPrev ? 28 : 42,
+                    height: isPrev ? 28 : 80,
                     objectFit: "contain",
                     objectPosition: "left",
                     marginBottom: isPrev ? 6 : 10,
@@ -206,7 +211,7 @@ export function InvoiceTemplate({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isPrev ? "1fr" : "1fr 1fr",
+            gridTemplateColumns: "1fr 1fr",
             gap: isPrev ? 14 : 24,
             marginTop: isPrev ? 16 : 28,
             paddingTop: isPrev ? 16 : 28,
@@ -292,6 +297,12 @@ export function InvoiceTemplate({
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
                       color: accent,
+                      width:
+                        label === "Description"
+                          ? "52%"
+                          : label === "Qty"
+                            ? "12%"
+                            : "18%",
                     }}
                   >
                     {label}
@@ -317,7 +328,14 @@ export function InvoiceTemplate({
               ) : (
                 items.map((item, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid #f4f4f5" }}>
-                    <td style={{ padding: isPrev ? "6px 8px" : "12px 12px", color: "#27272a" }}>
+                    <td
+                      style={{
+                        padding: isPrev ? "6px 8px" : "12px 12px",
+                        color: "#27272a",
+                        overflowWrap: "anywhere",
+                        wordBreak: "break-word",
+                      }}
+                    >
                       {item.description}
                     </td>
                     <td style={{ textAlign: "center", padding: isPrev ? "6px 6px" : "12px 12px", color: "#52525b" }}>
@@ -408,13 +426,22 @@ export function InvoiceTemplate({
             {notes && (
               <div>
                 <div style={sectionLabel}>Notes</div>
-                <div style={{ color: "#52525b", whiteSpace: "pre-wrap" }}>{notes}</div>
+                <div
+                  style={{
+                    color: "#52525b",
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {notes}
+                </div>
               </div>
             )}
             {(business.bankName || business.bankAccount || business.bankSwift || business.bankIban) && (
               <div>
                 <div style={sectionLabel}>Payment Details</div>
-                <div style={{ color: "#52525b" }}>
+                <div style={{ color: "#52525b", overflowWrap: "anywhere", wordBreak: "break-word" }}>
                   {business.bankName && (
                     <div><span style={{ color: "#a1a1aa" }}>Bank:</span> {business.bankName}</div>
                   )}
@@ -443,6 +470,8 @@ export function InvoiceTemplate({
               textAlign: "center",
               color: "#a1a1aa",
               fontSize: isPrev ? 8 : 10,
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
             }}
           >
             {business.footerLegalText}

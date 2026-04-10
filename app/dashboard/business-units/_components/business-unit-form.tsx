@@ -19,10 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 
 const CURRENCIES = [
+  { value: "NGN", label: "NGN - Nigerian Naira" },
   { value: "USD", label: "USD - US Dollar" },
   { value: "EUR", label: "EUR - Euro" },
   { value: "GBP", label: "GBP - British Pound" },
-  { value: "NGN", label: "NGN - Nigerian Naira" },
   { value: "ZAR", label: "ZAR - South African Rand" },
   { value: "CAD", label: "CAD - Canadian Dollar" },
   { value: "AUD", label: "AUD - Australian Dollar" },
@@ -52,7 +52,7 @@ const businessUnitSchema = yup.object().shape({
   registration_number: yup.string().optional(),
   tax_label: yup.string().required("Tax label is required").default("Tax"),
   default_tax_rate: yup.number().typeError("Must be a number").min(0).max(100).default(0),
-  default_currency: yup.string().required("Currency is required").default("USD"),
+  default_currency: yup.string().required("Currency is required").default("NGN"),
   payment_terms: yup.string().default("Net 30"),
 
   bank_name: yup.string().optional(),

@@ -10,6 +10,7 @@ import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 type RegisterPageProps = {
   searchParams: Promise<{
@@ -22,6 +23,10 @@ export default async function RegisterPage({
 }: RegisterPageProps) {
   const { error } = await searchParams;
 
+ const env = process.env.NODE_ENV; // Returns: 'development', 'production', or 'test'
+  if (env !== "development") {
+    redirect("/login");
+  }
   return (
     <Card className="w-full">
       <CardHeader>
@@ -30,6 +35,10 @@ export default async function RegisterPage({
       </CardHeader>
       <CardContent>
         <form action={register} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full name</Label>
+            <Input id="fullName" name="fullName" type="text" required />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" name="email" type="email" required />

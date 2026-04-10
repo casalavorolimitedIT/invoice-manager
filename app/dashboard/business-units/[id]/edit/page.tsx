@@ -22,8 +22,8 @@ export default async function EditBusinessUnitPage({ params }: Props) {
   return (
     <>
       <SiteHeader title={`Edit — ${bu.name}`} />
-      <div className="p-4 md:p-6">
-        <div className="mb-6">
+      <div className="p-4 md:p-6 w-full flex flex-col items-center justify-center">
+        <div className="mb-6 w-full max-w-4xl">
           <Link
             href="/dashboard/business-units"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -32,7 +32,9 @@ export default async function EditBusinessUnitPage({ params }: Props) {
             Back to Business Units
           </Link>
         </div>
-        <BusinessUnitForm action={boundAction} defaultValues={bu} />
+        <div className="w-full max-w-4xl">
+          <BusinessUnitForm action={boundAction} defaultValues={bu} />
+        </div>
       </div>
     </>
   );

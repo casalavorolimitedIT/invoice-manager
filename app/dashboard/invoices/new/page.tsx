@@ -1,4 +1,4 @@
-import { getBusinessUnits } from "@/lib/supabase/business-units";
+import { getBusinessUnitScope } from "@/lib/business-unit-scope";
 import { getClients } from "@/lib/supabase/clients";
 import { InvoiceBuilder } from "@/components/invoices/invoice-builder";
 import { SiteHeader } from "@/components/site-header";
@@ -8,10 +8,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export default async function NewInvoicePage() {
-  const [businessUnits, clients] = await Promise.all([
-    getBusinessUnits(),
-    getClients(),
-  ]);
+  const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
+  const clients = await getClients();
 
   if (businessUnits.length === 0) {
     redirect("/dashboard/business-units/new");
@@ -30,7 +28,11 @@ export default async function NewInvoicePage() {
             Back to Invoices
           </Link>
         </div>
-        <InvoiceBuilder businessUnits={businessUnits} allClients={clients} />
+        <InvoiceBuilder
+          businessUnits={businessUnits}
+          allClients={clients}
+          initialBusinessUnitId={activeBusinessUnitId ?? undefined}
+        />
       </div>
     </>
   );

@@ -347,11 +347,11 @@ export function InvoiceActions({
   }
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
       <Button
         size="sm"
         variant="outline"
-        className="h-8 text-xs"
+        className="h-9 w-full text-xs sm:h-8 sm:w-auto"
         onClick={handlePrint}
         disabled={isPending || isExporting}
       >
@@ -361,7 +361,7 @@ export function InvoiceActions({
       <Button
         size="sm"
         variant="outline"
-        className="h-8 text-xs"
+        className="h-9 w-full text-xs sm:h-8 sm:w-auto"
         onClick={handleDownloadImage}
         disabled={isPending || isExporting}
       >
@@ -373,7 +373,7 @@ export function InvoiceActions({
           key={next}
           size="sm"
           variant={next === "paid" ? "default" : "outline"}
-          className="gap-1.5 h-8 text-xs"
+          className="h-9 w-full gap-1.5 text-xs sm:h-8 sm:w-auto"
           onClick={() => handleStatusChange(next)}
           disabled={isPending}
         >
@@ -385,7 +385,7 @@ export function InvoiceActions({
       <Button
         size="sm"
         variant="outline"
-        className="gap-1.5 h-8 text-xs text-destructive hover:text-destructive border-destructive/30 hover:border-destructive ml-auto"
+        className="h-9 w-full gap-1.5 text-xs text-destructive hover:text-destructive border-destructive/30 hover:border-destructive sm:ml-auto sm:h-8 sm:w-auto"
         onClick={() => setDeleteOpen(true)}
         disabled={isPending || isExporting}
       >

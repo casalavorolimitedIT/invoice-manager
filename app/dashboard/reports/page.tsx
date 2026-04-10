@@ -1,10 +1,14 @@
 import { getInvoiceStats } from "@/lib/supabase/invoices";
-import { getBusinessUnits } from "@/lib/supabase/business-units";
 import { getInvoices } from "@/lib/supabase/invoices";
 import { SiteHeader } from "@/components/site-header";
-import { formatCurrency, STATUS_COLORS, STATUS_LABELS, type InvoiceStatus } from "@/lib/types/invoice";
+import { getBusinessUnitScope } from "@/lib/business-unit-scope";
+import { formatCurrency } from "@/lib/types/invoice";
 import { cn } from "@/lib/utils";
 import { ReportsInfoButton } from "./_components/reports-info-button";
+import {
+  ReportsBusinessUnitsSection,
+  ReportsRecentInvoicesSection,
+} from "./_components/reports-paginated-sections";
 
 function StatRow({
   label,
@@ -32,17 +36,18 @@ function StatRow({
 }
 
 export default async function ReportsPage() {
-  const [stats, businessUnits, allInvoices] = await Promise.all([
-    getInvoiceStats(),
-    getBusinessUnits(),
-    getInvoices(),
+  const { businessUnits, activeBusinessUnit, activeBusinessUnitId } = await getBusinessUnitScope();
+  const reportBusinessUnits = activeBusinessUnit ? [activeBusinessUnit] : businessUnits;
+  const [stats, allInvoices] = await Promise.all([
+    getInvoiceStats(activeBusinessUnitId ?? undefined),
+    getInvoices({ businessUnitId: activeBusinessUnitId ?? undefined }),
   ]);
 
-  const currency = businessUnits[0]?.default_currency ?? "NGN";
+  const currency = activeBusinessUnit?.default_currency ?? businessUnits[0]?.default_currency ?? "NGN";
 
   // Revenue per business unit
   const buRevenue: Record<string, { name: string; color: string; total: number; count: number }> = {};
-  for (const bu of businessUnits) {
+  for (const bu of reportBusinessUnits) {
     buRevenue[bu.id] = { name: bu.name, color: bu.brand_color ?? "#000", total: 0, count: 0 };
   }
   for (const inv of allInvoices) {
@@ -111,87 +116,22 @@ export default async function ReportsPage() {
           </div>
 
           {/* Per business unit */}
-          <div className="rounded-xl border bg-card p-4">
-            <h3 className="text-sm font-semibold mb-1">By Business Unit</h3>
-            <p className="text-xs text-muted-foreground mb-4">Total invoiced per unit (all statuses)</p>
-            {buList.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No business units yet.</p>
-            ) : (
-              <div>
-                {buList.map((bu) => (
-                  <div
-                    key={bu.name}
-                    className="flex items-center gap-4 py-3 border-b last:border-0"
-                  >
-                    <div
-                      className="w-2 h-8 rounded-full shrink-0"
-                      style={{ backgroundColor: bu.color }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{bu.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {bu.count} {bu.count === 1 ? "invoice" : "invoices"}
-                      </div>
-                    </div>
-                    <div className="text-sm font-bold tabular-nums text-right">
-                      {formatCurrency(bu.total, currency)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ReportsBusinessUnitsSection
+            businessUnits={buList}
+            currency={currency}
+          />
         </div>
 
-        {/* Recent invoices snapshot */}
-        {allInvoices.length > 0 && (
-          <div className="rounded-xl border bg-card p-4">
-            <h3 className="text-sm font-semibold mb-1">Recent Invoices</h3>
-            <p className="text-xs text-muted-foreground mb-4">Last 10 invoices across all units</p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left pb-2 font-medium text-muted-foreground">Invoice #</th>
-                    <th className="text-left pb-2 font-medium text-muted-foreground">Client</th>
-                    <th className="text-left pb-2 font-medium text-muted-foreground hidden sm:table-cell">Status</th>
-                    <th className="text-right pb-2 font-medium text-muted-foreground">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {allInvoices.slice(0, 10).map((inv) => (
-                    <tr key={inv.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-2.5">
-                        <a
-                          href={`/dashboard/invoices/${inv.id}`}
-                          className="font-mono text-xs font-semibold hover:underline"
-                        >
-                          {inv.invoice_number}
-                        </a>
-                      </td>
-                      <td className="py-2.5 text-muted-foreground truncate max-w-[140px]">
-                        {inv.client_name}
-                      </td>
-                      <td className="py-2.5 hidden sm:table-cell">
-                        <span
-                          className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                            STATUS_COLORS[inv.status as InvoiceStatus]
-                          )}
-                        >
-                          {STATUS_LABELS[inv.status as InvoiceStatus]}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-right font-semibold tabular-nums">
-                        {formatCurrency(inv.total, inv.currency)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <ReportsRecentInvoicesSection
+          recentInvoices={allInvoices.map((invoice) => ({
+            id: invoice.id,
+            invoice_number: invoice.invoice_number,
+            client_name: invoice.client_name,
+            status: invoice.status,
+            total: invoice.total,
+            currency: invoice.currency,
+          }))}
+        />
       </div>
     </>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { Client, BusinessUnit } from "@/lib/types/invoice";
 import type { ClientActionState } from "@/app/dashboard/clients/actions";
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BusinessUnitCombobox } from "@/components/custom/business-unit-combobox";
 import Link from "next/link";
 
 function SubmitButton({ isEdit }: { isEdit: boolean }) {
@@ -24,45 +25,50 @@ interface ClientFormProps {
   action: (state: ClientActionState, formData: FormData) => Promise<ClientActionState>;
   defaultValues?: Client;
   businessUnits: BusinessUnit[];
+  initialBusinessUnitId?: string;
 }
 
-export function ClientForm({ action, defaultValues, businessUnits }: ClientFormProps) {
+export function ClientForm({ action, defaultValues, businessUnits, initialBusinessUnitId }: ClientFormProps) {
   const isEdit = Boolean(defaultValues);
   const [state, formAction] = useActionState(action, {});
+  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState(
+    defaultValues?.business_unit_id ?? initialBusinessUnitId ?? ""
+  );
 
   return (
-    <form action={formAction} className="space-y-8 max-w-2xl">
-      {/* ── Business Unit ───────────────────────────────────── */}
-      <div className="space-y-1.5">
-        <Label htmlFor="business_unit_id">
-          Business Unit <span className="text-destructive">*</span>
-        </Label>
-        <select
-          id="business_unit_id"
-          name="business_unit_id"
-          required
-          defaultValue={defaultValues?.business_unit_id ?? ""}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">Select a business unit…</option>
-          {businessUnits.map((bu) => (
-            <option key={bu.id} value={bu.id}>
-              {bu.name} ({bu.code})
-            </option>
-          ))}
-        </select>
-        {state.fieldErrors?.business_unit_id && (
-          <p className="text-xs text-destructive">{state.fieldErrors.business_unit_id[0]}</p>
-        )}
-      </div>
+    <form action={formAction} className="space-y-8 max-w-4xl pb-16">
+      <Card>
+        <CardHeader>
+          <CardTitle>Client Assignment</CardTitle>
+          <CardDescription>Choose the business unit that owns this client record.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="business_unit_id">
+            Business Unit <span className="text-destructive">*</span>
+          </Label>
+          <BusinessUnitCombobox
+            businessUnits={businessUnits}
+            value={selectedBusinessUnitId}
+            onValueChange={setSelectedBusinessUnitId}
+            id="business_unit_id"
+            name="business_unit_id"
+            placeholder="Search business units..."
+            emptyText="No matching business units."
+            ariaInvalid={Boolean(state.fieldErrors?.business_unit_id)}
+          />
+          {state.fieldErrors?.business_unit_id && (
+            <p className="text-[11px] text-destructive">{state.fieldErrors.business_unit_id[0]}</p>
+          )}
+        </CardContent>
+      </Card>
 
-      <Separator />
-
-      {/* ── Identity ─────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h3 className="text-sm font-semibold">Client Information</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
+      <Card>
+        <CardHeader>
+          <CardTitle>Client Information</CardTitle>
+          <CardDescription>Core identity and contact details used on invoices and reminders.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-6 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="name">
               Name <span className="text-destructive">*</span>
             </Label>
@@ -74,10 +80,11 @@ export function ClientForm({ action, defaultValues, businessUnits }: ClientFormP
               defaultValue={defaultValues?.name ?? ""}
             />
             {state.fieldErrors?.name && (
-              <p className="text-xs text-destructive">{state.fieldErrors.name[0]}</p>
+              <p className="text-[11px] text-destructive">{state.fieldErrors.name[0]}</p>
             )}
           </div>
-          <div className="space-y-1.5">
+
+          <div className="space-y-2">
             <Label htmlFor="company">Company</Label>
             <Input
               id="company"
@@ -86,7 +93,18 @@ export function ClientForm({ action, defaultValues, businessUnits }: ClientFormP
               defaultValue={defaultValues?.company ?? ""}
             />
           </div>
-          <div className="space-y-1.5">
+
+          <div className="space-y-2">
+            <Label htmlFor="tax_id">Tax ID</Label>
+            <Input
+              id="tax_id"
+              name="tax_id"
+              placeholder="VAT-12345"
+              defaultValue={defaultValues?.tax_id ?? ""}
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -96,7 +114,8 @@ export function ClientForm({ action, defaultValues, businessUnits }: ClientFormP
               defaultValue={defaultValues?.email ?? ""}
             />
           </div>
-          <div className="space-y-1.5">
+
+          <div className="space-y-2">
             <Label htmlFor="phone">Phone</Label>
             <Input
               id="phone"
@@ -106,59 +125,72 @@ export function ClientForm({ action, defaultValues, businessUnits }: ClientFormP
               defaultValue={defaultValues?.phone ?? ""}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="tax_id">Tax ID</Label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Address & Notes</CardTitle>
+          <CardDescription>Billing address details and internal context for the client record.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-6 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="address">Street Address</Label>
             <Input
-              id="tax_id"
-              name="tax_id"
-              placeholder="Optional"
-              defaultValue={defaultValues?.tax_id ?? ""}
+              id="address"
+              name="address"
+              placeholder="123 Main St"
+              defaultValue={defaultValues?.address ?? ""}
             />
           </div>
-        </div>
-      </section>
 
-      <Separator />
+          <div className="space-y-2">
+            <Label htmlFor="city">City</Label>
+            <Input id="city" name="city" placeholder="Lagos" defaultValue={defaultValues?.city ?? ""} />
+          </div>
 
-      {/* ── Address ───────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h3 className="text-sm font-semibold">Address</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {[
-            { id: "address", label: "Street Address", placeholder: "123 Main St" },
-            { id: "city", label: "City", placeholder: "Lagos" },
-            { id: "state", label: "State / Province", placeholder: "Lagos State" },
-            { id: "country", label: "Country", placeholder: "Nigeria" },
-            { id: "postal_code", label: "Postal Code", placeholder: "100001" },
-          ].map((f) => (
-            <div key={f.id} className="space-y-1.5">
-              <Label htmlFor={f.id}>{f.label}</Label>
-              <Input
-                id={f.id}
-                name={f.id}
-                placeholder={f.placeholder}
-                defaultValue={defaultValues?.[f.id as keyof Client] as string ?? ""}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
+          <div className="space-y-2">
+            <Label htmlFor="state">State / Province</Label>
+            <Input
+              id="state"
+              name="state"
+              placeholder="Lagos State"
+              defaultValue={defaultValues?.state ?? ""}
+            />
+          </div>
 
-      <Separator />
+          <div className="space-y-2">
+            <Label htmlFor="country">Country</Label>
+            <Input
+              id="country"
+              name="country"
+              placeholder="Nigeria"
+              defaultValue={defaultValues?.country ?? ""}
+            />
+          </div>
 
-      {/* ── Notes ─────────────────────────────────────────────── */}
-      <section>
-        <div className="space-y-1.5">
-          <Label htmlFor="notes">Notes</Label>
-          <Textarea
-            id="notes"
-            name="notes"
-            placeholder="Internal notes about this client."
-            rows={2}
-            defaultValue={defaultValues?.notes ?? ""}
-          />
-        </div>
-      </section>
+          <div className="space-y-2">
+            <Label htmlFor="postal_code">Postal Code</Label>
+            <Input
+              id="postal_code"
+              name="postal_code"
+              placeholder="100001"
+              defaultValue={defaultValues?.postal_code ?? ""}
+            />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="notes">Internal Notes</Label>
+            <Textarea
+              id="notes"
+              name="notes"
+              placeholder="Internal notes about this client."
+              rows={3}
+              defaultValue={defaultValues?.notes ?? ""}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {state.error && (
         <p className="text-sm text-destructive" role="alert">
@@ -166,9 +198,9 @@ export function ClientForm({ action, defaultValues, businessUnits }: ClientFormP
         </p>
       )}
 
-      <div className="flex gap-3">
-        <SubmitButton isEdit={isEdit} />
+      <div className="flex items-center justify-end gap-4 py-4">
         <Button variant="outline" render={<Link href="/dashboard/clients" />}>Cancel</Button>
+        <SubmitButton isEdit={isEdit} />
       </div>
     </form>
   );

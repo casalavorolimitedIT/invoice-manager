@@ -85,7 +85,7 @@ export function BusinessUnitsClient({ units }: { units: BusinessUnit[] }) {
           onChange={handleSearch}
           placeholder="Search by name, code, category…"
           isClearable
-          className="w-full sm:w-72"
+          className="w-full sm:w-90"
         />
 
         {/* Filter tabs + view toggle */}
@@ -255,8 +255,8 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
 
 function TableView({ units }: { units: BusinessUnit[] }) {
   return (
-    <div className="rounded-xl border border-border overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="rounded-xl border border-border overflow-x-auto">
+      <table className="w-full text-sm min-w-[800px]">
         <thead>
           <tr className="border-b border-border bg-muted/40">
             <th className="px-4 py-3 text-left font-medium text-muted-foreground text-xs">Name</th>
@@ -285,7 +285,7 @@ function TableView({ units }: { units: BusinessUnit[] }) {
           {units.map((bu, i) => (
             <tr
               key={bu.id}
-              className={`border-b border-border last:border-0 transition-colors hover:bg-muted/30 ${
+              className={`border-b border-border last:border-0 transition-colors hover:bg-muted/30  ${
                 bu.is_archived ? "opacity-60" : ""
               } ${i % 2 === 0 ? "" : "bg-muted/10"}`}
             >

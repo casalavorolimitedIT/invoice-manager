@@ -3,6 +3,7 @@ import { getInvoice } from "@/lib/supabase/invoices";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { InvoiceTemplate } from "@/components/invoices/invoice-template";
+import { ResponsiveInvoiceFrame } from "@/components/invoices/responsive-invoice-frame";
 import { InvoiceActions } from "../_components/invoice-actions";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
@@ -103,36 +104,43 @@ export default async function InvoiceDetailPage({ params }: Props) {
 
   return (
     <>
-      <SiteHeader
-        title={invoice.invoice_number}
-        actions={
-          <InvoiceActions
-            id={invoice.id}
-            invoiceNumber={invoice.invoice_number}
-            currentStatus={invoice.status}
-            exportElementId={invoiceElementId}
-          />
-        }
-      />
+      <SiteHeader title={invoice.invoice_number} />
 
       <div className="space-y-6 p-4 md:p-6 print:space-y-0 print:p-0">
-        {/* Back link */}
-        <Link
-          href="/dashboard/invoices"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground print:hidden"
-        >
-          <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-4" />
-          Back to Invoices
-        </Link>
+        <div className="flex flex-col gap-4 print:hidden lg:flex-row lg:items-start lg:justify-between">
+          <Link
+            href="/dashboard/invoices"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-4" />
+            Back to Invoices
+          </Link>
+
+          <div className="w-full lg:w-auto lg:max-w-[calc(100%-12rem)]">
+            <InvoiceActions
+              id={invoice.id}
+              invoiceNumber={invoice.invoice_number}
+              currentStatus={invoice.status}
+              exportElementId={invoiceElementId}
+            />
+          </div>
+        </div>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_300px] print:block">
           {/* Invoice template */}
-          <div>
-            <InvoiceTemplate payload={payload} variant="print" elementId={invoiceElementId} />
+          <div className="min-w-0">
+            <div className="hidden md:block">
+              <InvoiceTemplate payload={payload} variant="print" elementId={invoiceElementId} />
+            </div>
+            <div className="md:hidden">
+              <ResponsiveInvoiceFrame>
+                <InvoiceTemplate payload={payload} variant="print" elementId={invoiceElementId} />
+              </ResponsiveInvoiceFrame>
+            </div>
           </div>
 
           {/* Sidebar: summary + history */}
-          <div className="space-y-4 print:hidden">
+          <div className="space-y-4 print:hidden min-w-0">
             {/* Summary card */}
             <div className="rounded-xl border bg-card p-4 space-y-3">
               <h3 className="text-sm font-semibold">Summary</h3>
@@ -160,7 +168,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Business Unit</span>
-                  <span className="text-right text-xs max-w-32 truncate">{invoice.bu_name}</span>
+                  <span className="max-w-40 text-right text-xs break-words">{invoice.bu_name}</span>
                 </div>
               </div>
             </div>
@@ -202,7 +210,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                         </span>
                       </div>
                       {entry.notes && (
-                        <div className="text-xs text-muted-foreground mt-0.5">{entry.notes}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground break-words">{entry.notes}</div>
                       )}
                     </li>
                   ))}
