@@ -59,7 +59,7 @@ export function BusinessUnitCombobox({
   const selectedOption = options.find((option) => option.value === value) ?? null;
 
   return (
-    <>
+    <div className="w-full">
       {name ? <input type="hidden" name={name} value={selectedOption?.value ?? ""} /> : null}
       <Combobox
         value={selectedOption}
@@ -91,6 +91,6 @@ export function BusinessUnitCombobox({
           </ComboboxList>
         </ComboboxContent>
       </Combobox>
-    </>
+    </div>
   );
 }

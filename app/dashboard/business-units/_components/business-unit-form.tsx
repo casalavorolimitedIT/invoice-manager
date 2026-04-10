@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import type { BusinessUnit } from "@/lib/types/invoice";
@@ -31,6 +31,8 @@ const CURRENCIES = [
   { value: "AED", label: "AED - UAE Dirham" },
   { value: "INR", label: "INR - Indian Rupee" },
 ];
+
+const DEFAULT_BRAND_COLOR = "#000000";
 
 const emptyToNull = (v: string | undefined | null, o: string | undefined | null) => (o === "" ? null : v);
 
@@ -82,7 +84,7 @@ export function BusinessUnitForm({ action, defaultValues }: BusinessUnitFormProp
     register,
     handleSubmit,
     control,
-    watch,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(businessUnitSchema),
@@ -110,13 +112,14 @@ export function BusinessUnitForm({ action, defaultValues }: BusinessUnitFormProp
       bank_swift: defaultValues?.bank_swift ?? "",
       bank_iban: defaultValues?.bank_iban ?? "",
       logo_url: defaultValues?.logo_url ?? "",
-      brand_color: defaultValues?.brand_color ?? "#000000",
+      brand_color: defaultValues?.brand_color ?? DEFAULT_BRAND_COLOR,
       footer_legal_text: defaultValues?.footer_legal_text ?? "",
       notes: defaultValues?.notes ?? "",
     },
   });
 
-  const brandColor = watch("brand_color");
+  const brandColor =
+    useWatch({ control, name: "brand_color" }) || DEFAULT_BRAND_COLOR;
 
   const onSubmit = (data: yup.InferType<typeof businessUnitSchema>) => {
     startTransition(async () => {
@@ -362,15 +365,46 @@ export function BusinessUnitForm({ action, defaultValues }: BusinessUnitFormProp
             <div className="flex items-center gap-2">
               <input
                 type="color"
+                title="Choose a colour"
                 id="brand_color"
                 className="h-9 w-12 rounded cursor-pointer border border-input"
-                {...register("brand_color")}
+                value={brandColor}
+                onChange={(event) => {
+                  setValue("brand_color", event.target.value.toUpperCase(), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
               />
               <Input
+                value={brandColor}
+                onChange={(event) => {
+                  const nextValue = event.target.value.toUpperCase();
+                  setValue(
+                    "brand_color",
+                    nextValue === "" ? DEFAULT_BRAND_COLOR : nextValue,
+                    {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    },
+                  );
+                }}
                 placeholder="#000000"
                 className="font-mono uppercase"
-                {...register("brand_color")}
               />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => {
+                  setValue("brand_color", DEFAULT_BRAND_COLOR, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+              >
+                Default
+              </Button>
             </div>
             {errors.brand_color && <p className="text-[11px] text-destructive">{errors.brand_color.message}</p>}
           </div>

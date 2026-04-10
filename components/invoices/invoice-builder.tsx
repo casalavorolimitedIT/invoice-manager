@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BusinessUnitCombobox } from "@/components/custom/business-unit-combobox";
+import { ClientCombobox } from "@/components/custom/client-combobox";
 import {
   Select,
   SelectContent,
@@ -338,35 +339,13 @@ export function InvoiceBuilder({
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 From Directory
               </Label>
-              <Select
-                value={clientId || "__manual__"}
-                onValueChange={(v) => v && handleClientSelect(v)}
-                items={[
-                  { value: "__manual__", label: "Enter manually" },
-                  ...buClients.map((c) => ({ value: c.id, label: c.name + (c.company ? ` — ${c.company}` : "") })),
-                ]}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select or enter manually" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__manual__" label="Enter manually">
-                    <span className="text-muted-foreground italic">Enter manually</span>
-                  </SelectItem>
-                  {buClients.map((c) => (
-                    <SelectItem
-                      key={c.id}
-                      value={c.id}
-                      label={c.name + (c.company ? ` — ${c.company}` : "")}
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium">{c.name}</span>
-                        {c.company && <span className="text-xs text-muted-foreground">{c.company}</span>}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientCombobox
+                clients={buClients}
+                value={clientId}
+                onValueChange={handleClientSelect}
+                placeholder="Select or enter manually"
+                emptyText="No matching clients."
+              />
             </div>
           )}
 
@@ -496,7 +475,7 @@ export function InvoiceBuilder({
         />
         <FieldGroup>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="space-y-1.5 sm:flex-1">
+            <div className="space-y-1.5 sm:flex-1 relative lg:top-1.5">
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Discount Type
               </Label>

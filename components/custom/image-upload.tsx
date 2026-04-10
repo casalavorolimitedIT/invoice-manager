@@ -55,7 +55,7 @@ export type ImageUploadProps = {
   className?: string;
   /** Class applied to the preview/dropzone area (controls height). Default: "aspect-video w-full" */
   previewClassName?: string;
-  /** Minimum size reduction fraction. Default: 0.5 (50% smaller) */
+  /** Minimum size reduction fraction. Default: 0 (any smaller result is accepted) */
   targetReduction?: number;
 };
 
@@ -80,7 +80,7 @@ export function ImageUpload({
   urlPlaceholder = "https://",
   className,
   previewClassName = "aspect-video w-full",
-  targetReduction = 0.5,
+  targetReduction = 0,
 }: ImageUploadProps) {
   const generatedId = React.useId();
   const baseId = id ?? generatedId;
@@ -271,13 +271,19 @@ export function ImageUpload({
 
         {showPreview ? (
           /* ── Preview state ── */
-          <div className={cn("relative overflow-hidden", previewClassName)}>
+          <div
+            className={cn(
+              "relative flex items-center justify-center overflow-hidden",
+              previewClassName,
+            )}
+          >
             <SmartImage
               src={resolvedPreview}
               width={640}
               height={384}
               alt={previewAlt}
-              className="h-full w-full object-cover"
+              wrapperClassName="h-full w-full"
+              className="h-full w-full object-cover object-center"
             />
 
             {/* Top gradient fade — appears on hover */}
