@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getInvoice } from "@/lib/supabase/invoices";
+import { getBusinessUnit } from "@/lib/supabase/business-units";
 import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { InvoiceTemplate } from "@/components/invoices/invoice-template";
@@ -92,6 +93,10 @@ function formatDateTime(iso: string) {
 
 export default async function InvoiceDetailPage({ params }: Props) {
   const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const [invoice, history] = await Promise.all([
     getInvoice(id),
     getStatusHistory(id),
@@ -99,8 +104,13 @@ export default async function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) notFound();
 
+  const businessUnit = await getBusinessUnit(invoice.business_unit_id);
+  const canManageInvoice = Boolean(user && businessUnit?.current_user_can_manage);
+
   const payload = invoiceToPayload(invoice);
-  const invoiceElementId = "invoice-document";
+  const invoiceExportElementId = "invoice-document-export";
+  const invoiceDesktopElementId = "invoice-document-desktop";
+  const invoiceMobileElementId = "invoice-document-mobile";
 
   return (
     <>
@@ -117,24 +127,37 @@ export default async function InvoiceDetailPage({ params }: Props) {
           </Link>
 
           <div className="w-full lg:w-auto lg:max-w-[calc(100%-12rem)]">
-            <InvoiceActions
-              id={invoice.id}
-              invoiceNumber={invoice.invoice_number}
-              currentStatus={invoice.status}
-              exportElementId={invoiceElementId}
-            />
+            {canManageInvoice ? (
+              <InvoiceActions
+                id={invoice.id}
+                invoiceNumber={invoice.invoice_number}
+                currentStatus={invoice.status}
+                exportElementIds={[
+                  invoiceExportElementId,
+                  invoiceDesktopElementId,
+                  invoiceMobileElementId,
+                ]}
+              />
+            ) : null}
           </div>
+        </div>
+
+        <div
+          className="pointer-events-none fixed top-0 -z-10 w-205 -left-2499.75"
+          aria-hidden="true"
+        >
+          <InvoiceTemplate payload={payload} variant="print" elementId={invoiceExportElementId} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_300px] print:block">
           {/* Invoice template */}
           <div className="min-w-0">
             <div className="hidden md:block">
-              <InvoiceTemplate payload={payload} variant="print" elementId={invoiceElementId} />
+              <InvoiceTemplate payload={payload} variant="print" elementId={invoiceDesktopElementId} />
             </div>
             <div className="md:hidden">
               <ResponsiveInvoiceFrame>
-                <InvoiceTemplate payload={payload} variant="print" elementId={invoiceElementId} />
+                <InvoiceTemplate payload={payload} variant="print" elementId={invoiceMobileElementId} />
               </ResponsiveInvoiceFrame>
             </div>
           </div>
@@ -149,7 +172,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                   <span className="text-muted-foreground">Status</span>
                   <span
                     className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                      "inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-medium",
                       STATUS_COLORS[invoice.status]
                     )}
                   >
@@ -168,7 +191,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Business Unit</span>
-                  <span className="max-w-40 text-right text-xs break-words">{invoice.bu_name}</span>
+                  <span className="max-w-40 text-right text-xs wrap-break-word">{invoice.bu_name}</span>
                 </div>
               </div>
             </div>
@@ -189,7 +212,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                           <>
                             <span
                               className={cn(
-                                "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
+                                "inline-flex items-center whitespace-nowrap px-1.5 py-0.5 rounded text-xs font-medium",
                                 STATUS_COLORS[entry.from_status as InvoiceStatus]
                               )}
                             >
@@ -202,7 +225,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                         )}
                         <span
                           className={cn(
-                            "inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium",
+                            "inline-flex items-center whitespace-nowrap px-1.5 py-0.5 rounded text-xs font-medium",
                             STATUS_COLORS[entry.to_status as InvoiceStatus]
                           )}
                         >
@@ -210,7 +233,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
                         </span>
                       </div>
                       {entry.notes && (
-                        <div className="mt-0.5 text-xs text-muted-foreground break-words">{entry.notes}</div>
+                        <div className="mt-0.5 text-xs text-muted-foreground wrap-break-word">{entry.notes}</div>
                       )}
                     </li>
                   ))}

@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import type { BusinessUnit } from "@/lib/types/invoice";
-import type { BusinessUnitActionState } from "@/app/dashboard/business-units/actions";
-import { uploadLogo } from "@/app/dashboard/business-units/actions";
 import { appToast } from "@/components/custom/toast-ui";
 import { ImageUpload } from "@/components/custom/image-upload";
 
@@ -71,13 +70,16 @@ const businessUnitSchema = yup.object().shape({
 });
 
 interface BusinessUnitFormProps {
-  action: (state: BusinessUnitActionState, formData: FormData) => Promise<BusinessUnitActionState>;
+  /** Provide the business unit id to switch the form into edit mode. */
+  id?: string;
   defaultValues?: BusinessUnit;
 }
 
-export function BusinessUnitForm({ action, defaultValues }: BusinessUnitFormProps) {
-  const isEdit = Boolean(defaultValues);
+export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
+  const isEdit = Boolean(id);
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [serverError, setServerError] = useState<string | undefined>();
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
   const {
@@ -104,7 +106,7 @@ export function BusinessUnitForm({ action, defaultValues }: BusinessUnitFormProp
       registration_number: defaultValues?.registration_number ?? "",
       tax_label: defaultValues?.tax_label ?? "Tax",
       default_tax_rate: defaultValues?.default_tax_rate ?? 0,
-      default_currency: defaultValues?.default_currency ?? "USD",
+      default_currency: defaultValues?.default_currency ?? "NGN",
       payment_terms: defaultValues?.payment_terms ?? "Net 30",
       bank_name: defaultValues?.bank_name ?? "",
       bank_account_number: defaultValues?.bank_account_number ?? "",
@@ -136,23 +138,40 @@ export function BusinessUnitForm({ action, defaultValues }: BusinessUnitFormProp
           const storagePath = urlPath.replace(/^\/storage\/v1\/object\/public\/logos\//, "");
           if (storagePath) uploadFormData.append("oldPath", storagePath);
         }
-        const result = await uploadLogo(uploadFormData);
-        if (result.error) {
-          appToast.error("Logo upload failed", { description: result.error });
+        const response = await fetch("/dashboard/business-units/logo/api", {
+          method: "POST",
+          body: uploadFormData,
+        });
+        const result = (await response.json().catch(() => null)) as
+          | { url?: string; error?: string }
+          | null;
+        if (!response.ok || result?.error) {
+          appToast.error("Logo upload failed", { description: result?.error ?? "Request failed." });
           return;
         }
-        logoUrl = result.url ?? "";
+        logoUrl = result?.url ?? "";
       }
 
-      const formData = new FormData();
+      const payload: Record<string, unknown> = {};
       Object.entries({ ...data, logo_url: logoUrl || undefined }).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
+          payload[key] = value;
         }
       });
-      const res = await action({}, formData);
-      if (res?.error) {
-        appToast.error(res.error);
+
+      const endpoint = isEdit
+        ? `/dashboard/business-units/${id}/api`
+        : "/dashboard/business-units/api";
+      const response = await fetch(endpoint, {
+        method: isEdit ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok || result?.error) {
+        setServerError(result?.error ?? "Something went wrong. Please try again.");
+      } else {
+        router.push("/dashboard/business-units");
       }
     });
   };
@@ -436,6 +455,12 @@ export function BusinessUnitForm({ action, defaultValues }: BusinessUnitFormProp
           {isPending ? "Saving…" : isEdit ? "Save Changes" : "Create Business Unit"}
         </Button>
       </div>
+
+      {serverError && (
+        <p className="text-sm text-destructive" role="alert">
+          {serverError}
+        </p>
+      )}
     </form>
   );
 }

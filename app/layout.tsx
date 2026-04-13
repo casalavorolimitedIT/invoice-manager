@@ -33,10 +33,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <head>
+      {/* <head>
         <link rel="icon" type="image/png" href="/casalogo2.png" />
-      </head>
+      </head> */}
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <TooltipProvider>

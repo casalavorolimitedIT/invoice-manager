@@ -44,6 +44,7 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
           <tbody className="divide-y">
             {paginatedClients.map((client) => {
               const businessUnit = businessUnitMap[client.business_unit_id];
+              const canManage = businessUnit?.current_user_can_manage ?? false;
 
               return (
                 <tr key={client.id} className="hover:bg-muted/30 transition-colors">
@@ -69,25 +70,33 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 gap-1 text-xs"
-                        render={<Link href={`/dashboard/invoices/new?clientId=${client.id}`} />}
-                      >
-                        <HugeiconsIcon icon={Invoice01Icon} strokeWidth={2} className="size-3.5" />
-                        Invoice
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 gap-1 text-xs"
-                        render={<Link href={`/dashboard/clients/${client.id}/edit`} />}
-                      >
-                        <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} className="size-3.5" />
-                        Edit
-                      </Button>
-                      <ClientActions id={client.id} name={client.name} />
+                      {canManage ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 gap-1 text-xs"
+                            render={<Link href={`/dashboard/invoices/new?clientId=${client.id}`} />}
+                          >
+                            <HugeiconsIcon icon={Invoice01Icon} strokeWidth={2} className="size-3.5" />
+                            Invoice
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 gap-1 text-xs"
+                            render={<Link href={`/dashboard/clients/${client.id}/edit`} />}
+                          >
+                            <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} className="size-3.5" />
+                            Edit
+                          </Button>
+                          <ClientActions id={client.id} name={client.name} />
+                        </>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-sky-700 border-sky-200 bg-sky-50">
+                          View only
+                        </Badge>
+                      )}
                     </div>
                   </td>
                 </tr>

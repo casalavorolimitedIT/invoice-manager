@@ -23,6 +23,7 @@ interface Props {
 export default async function InvoicesPage({ searchParams }: Props) {
   const { status } = await searchParams;
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
+  const canCreateInvoice = businessUnits.some((businessUnit) => businessUnit.current_user_can_manage);
 
   const invoices = await getInvoices(
     {
@@ -47,10 +48,12 @@ export default async function InvoicesPage({ searchParams }: Props) {
         actions={
           <>
             <InvoicesInfoButton />
-            <Button size="sm" render={<Link href="/dashboard/invoices/new" className="gap-1.5" />}>
-              <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
-              New Invoice
-            </Button>
+            {canCreateInvoice ? (
+              <Button size="sm" render={<Link href="/dashboard/invoices/new" className="gap-1.5" />}>
+                <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
+                New Invoice
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -87,7 +90,9 @@ export default async function InvoicesPage({ searchParams }: Props) {
             <p className="text-xs text-muted-foreground">
               Create your first invoice to get started.
             </p>
-            <Button size="sm" render={<Link href="/dashboard/invoices/new" />}>New Invoice</Button>
+            {canCreateInvoice ? (
+              <Button size="sm" render={<Link href="/dashboard/invoices/new" />}>New Invoice</Button>
+            ) : null}
           </div>
         ) : (
           <InvoicesClient invoices={invoices} businessUnits={businessUnits} />

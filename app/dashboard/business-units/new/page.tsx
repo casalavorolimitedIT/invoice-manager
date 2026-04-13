@@ -1,6 +1,5 @@
 import { SiteHeader } from "@/components/site-header";
 import { BusinessUnitForm } from "../_components/business-unit-form";
-import { createBusinessUnit } from "../actions";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
@@ -23,7 +22,7 @@ export default function NewBusinessUnitPage() {
           </p>
         </div>
        <div className="w-full max-w-4xl">
-         <BusinessUnitForm action={createBusinessUnit} />
+         <BusinessUnitForm />
        </div>
       </div>
     </>

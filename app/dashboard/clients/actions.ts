@@ -69,8 +69,7 @@ export async function updateClient(
   const { error } = await supabase
     .from("clients")
     .update(result.data)
-    .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("id", id);
 
   if (error) return { error: error.message };
 
@@ -84,8 +83,7 @@ export async function archiveClient(id: string): Promise<{ error?: string }> {
   const { error } = await supabase
     .from("clients")
     .update({ is_archived: true })
-    .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("id", id);
 
   return { error: error?.message };
 }
@@ -97,8 +95,7 @@ export async function deleteClient(id: string): Promise<{ error?: string }> {
   const { error } = await supabase
     .from("clients")
     .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("id", id);
 
   return { error: error?.message };
 }

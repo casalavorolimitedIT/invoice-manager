@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { getClient } from "@/lib/supabase/clients";
 import { getBusinessUnitScope } from "@/lib/business-unit-scope";
+import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/site-header";
 import { ClientForm } from "../../_components/client-form";
-import { updateClient } from "../../actions";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
@@ -14,13 +14,20 @@ interface Props {
 
 export default async function EditClientPage({ params }: Props) {
   const { id } = await params;
+  const supabase = await createSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const [client, businessUnits] = await Promise.all([
     getClient(id),
     getBusinessUnitScope().then((scope) => scope.businessUnits),
   ]);
-  if (!client) notFound();
+  const canManageClient = businessUnits.some(
+    (businessUnit) => businessUnit.id === client?.business_unit_id && businessUnit.current_user_can_manage
+  );
 
-  const boundAction = updateClient.bind(null, id);
+  if (!client || !user || !canManageClient) notFound();
 
   return (
     <>
@@ -36,7 +43,7 @@ export default async function EditClientPage({ params }: Props) {
           </Link>
         </div>
         <div className="max-w-4xl w-full">
-          <ClientForm action={boundAction} defaultValues={client} businessUnits={businessUnits} />
+          <ClientForm id={id} defaultValues={client} businessUnits={businessUnits} />
         </div>
       </div>
     </>

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DeleteModal } from "@/components/custom/DeleteModal";
-import { deleteClient } from "@/app/dashboard/clients/actions";
 import { appToast } from "@/lib/toast";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete01Icon } from "@hugeicons/core-free-icons";
@@ -16,10 +15,13 @@ export function ClientActions({ id, name }: { id: string; name: string }) {
 
   async function handleDelete() {
     setIsLoading(true);
-    const result = await deleteClient(id);
+    const response = await fetch(`/dashboard/clients/${id}/api`, {
+      method: "DELETE",
+    });
+    const result = (await response.json().catch(() => null)) as { error?: string } | null;
     setIsLoading(false);
-    if (result.error) {
-      appToast.error("Failed to delete", { description: result.error });
+    if (!response.ok || result?.error) {
+      appToast.error("Failed to delete", { description: result?.error ?? "Request failed." });
     } else {
       appToast.success(`"${name}" deleted`);
       setDeleteOpen(false);

@@ -10,9 +10,21 @@ import { redirect } from "next/navigation";
 export default async function NewInvoicePage() {
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
   const clients = await getClients();
+  const writableBusinessUnits = businessUnits.filter((businessUnit) => businessUnit.current_user_can_manage);
+  const writableBusinessUnitIds = new Set(writableBusinessUnits.map((businessUnit) => businessUnit.id));
+  const writableClients = clients.filter((client) => writableBusinessUnitIds.has(client.business_unit_id));
+  const writableActiveBusinessUnitId = writableBusinessUnits.some(
+    (businessUnit) => businessUnit.id === activeBusinessUnitId
+  )
+    ? activeBusinessUnitId
+    : writableBusinessUnits[0]?.id;
 
   if (businessUnits.length === 0) {
     redirect("/dashboard/business-units/new");
+  }
+
+  if (writableBusinessUnits.length === 0) {
+    redirect("/dashboard/invoices");
   }
 
   return (
@@ -29,9 +41,9 @@ export default async function NewInvoicePage() {
           </Link>
         </div>
         <InvoiceBuilder
-          businessUnits={businessUnits}
-          allClients={clients}
-          initialBusinessUnitId={activeBusinessUnitId ?? undefined}
+          businessUnits={writableBusinessUnits}
+          allClients={writableClients}
+          initialBusinessUnitId={writableActiveBusinessUnitId ?? undefined}
         />
       </div>
     </>

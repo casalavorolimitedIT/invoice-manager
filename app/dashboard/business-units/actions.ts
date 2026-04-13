@@ -1,12 +1,17 @@
 "use server";
 
 import { createActionClient } from "@/lib/supabase/action";
-import { businessUnitSchema } from "@/lib/types/invoice";
-import { redirect } from "next/navigation";
+import {
+  BUSINESS_UNIT_MEMBER_ROLES,
+  businessUnitSchema,
+  type BusinessUnitMemberRole,
+} from "@/lib/types/invoice";
+import { z } from "zod";
 
 export interface BusinessUnitActionState {
   error?: string;
   fieldErrors?: Record<string, string[] | undefined>;
+  redirectTo?: string;
 }
 
 interface ActionError {
@@ -15,6 +20,18 @@ interface ActionError {
   details?: string;
   hint?: string;
 }
+
+type ProfileLookupResult = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar: string | null;
+};
+
+const inviteBusinessUnitMemberSchema = z.object({
+  email: z.string().email("Enter a valid email address"),
+  role: z.enum(BUSINESS_UNIT_MEMBER_ROLES).default("viewer"),
+});
 
 async function getAuthUser() {
   const supabase = await createActionClient();
@@ -66,15 +83,31 @@ export async function createBusinessUnit(
     };
   }
 
-  const { error } = await supabase.from("business_units").insert({
-    ...result.data,
-    code: result.data.code.toUpperCase().trim(),
+  const { data: businessUnit, error } = await supabase
+    .from("business_units")
+    .insert({
+      ...result.data,
+      code: result.data.code.toUpperCase().trim(),
+      user_id: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (error || !businessUnit) return { error: getBusinessUnitActionError(error) };
+
+  const { error: membershipError } = await supabase.from("business_unit_members").insert({
+    business_unit_id: businessUnit.id,
     user_id: user.id,
+    role: "owner",
+    invited_by: user.id,
   });
 
-  if (error) return { error: getBusinessUnitActionError(error) };
+  if (membershipError) {
+    await supabase.from("business_units").delete().eq("id", businessUnit.id).eq("user_id", user.id);
+    return { error: membershipError.message };
+  }
 
-  redirect("/dashboard/business-units");
+  return { redirectTo: "/dashboard/business-units" };
 }
 
 export async function updateBusinessUnit(
@@ -99,12 +132,11 @@ export async function updateBusinessUnit(
       ...result.data,
       code: result.data.code.toUpperCase().trim(),
     })
-    .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("id", id);
 
   if (error) return { error: getBusinessUnitActionError(error) };
 
-  redirect("/dashboard/business-units");
+  return { redirectTo: "/dashboard/business-units" };
 }
 
 export async function archiveBusinessUnit(id: string): Promise<{ error?: string }> {
@@ -114,8 +146,7 @@ export async function archiveBusinessUnit(id: string): Promise<{ error?: string 
   const { error } = await supabase
     .from("business_units")
     .update({ is_archived: true })
-    .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("id", id);
 
   return { error: getBusinessUnitActionError(error) };
 }
@@ -127,8 +158,7 @@ export async function unarchiveBusinessUnit(id: string): Promise<{ error?: strin
   const { error } = await supabase
     .from("business_units")
     .update({ is_archived: false })
-    .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("id", id);
 
   return { error: getBusinessUnitActionError(error) };
 }
@@ -140,10 +170,101 @@ export async function deleteBusinessUnit(id: string): Promise<{ error?: string }
   const { error } = await supabase
     .from("business_units")
     .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("id", id);
 
   return { error: getBusinessUnitActionError(error) };
+}
+
+export async function inviteBusinessUnitMember(
+  businessUnitId: string,
+  payload: { email: string; role: BusinessUnitMemberRole }
+): Promise<{ error?: string }> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const result = inviteBusinessUnitMemberSchema.safeParse({
+    email: payload.email.trim().toLowerCase(),
+    role: payload.role,
+  });
+
+  if (!result.success) {
+    return { error: result.error.issues[0]?.message ?? "Invalid invite payload" };
+  }
+
+  const { data: businessUnit } = await supabase
+    .from("business_units")
+    .select("id, user_id, name")
+    .eq("id", businessUnitId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!businessUnit) {
+    return { error: "Only the business-unit owner can invite members." };
+  }
+
+  const { data: profile } = await supabase
+    .rpc("get_profile_by_email", { p_email: result.data.email })
+    .single<ProfileLookupResult>();
+
+  if (!profile?.id) {
+    return { error: "No existing user was found with that email address." };
+  }
+
+  if (profile.id === user.id) {
+    return { error: "The business-unit owner already has access." };
+  }
+
+  const { error } = await supabase.from("business_unit_members").insert({
+    business_unit_id: businessUnitId,
+    user_id: profile.id,
+    role: result.data.role,
+    invited_by: user.id,
+  });
+
+  if (error?.code === "23505") {
+    return { error: "That user already has access to this business unit." };
+  }
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {};
+}
+
+export async function removeBusinessUnitMember(
+  businessUnitId: string,
+  memberUserId: string
+): Promise<{ error?: string }> {
+  const { supabase, user } = await getAuthUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: businessUnit } = await supabase
+    .from("business_units")
+    .select("id, user_id")
+    .eq("id", businessUnitId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!businessUnit) {
+    return { error: "Only the business-unit owner can remove members." };
+  }
+
+  if (memberUserId === user.id) {
+    return { error: "The owner cannot remove themselves from the business unit." };
+  }
+
+  const { error } = await supabase
+    .from("business_unit_members")
+    .delete()
+    .eq("business_unit_id", businessUnitId)
+    .eq("user_id", memberUserId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {};
 }
 
 /**

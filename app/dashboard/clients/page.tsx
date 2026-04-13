@@ -14,6 +14,7 @@ import { ClientsClient } from "./_components/clients-client";
 export default async function ClientsPage() {
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
   const clients = await getClients(activeBusinessUnitId ?? undefined);
+  const canCreateClient = businessUnits.some((businessUnit) => businessUnit.current_user_can_manage);
 
   return (
     <>
@@ -22,17 +23,19 @@ export default async function ClientsPage() {
         actions={
           <>
             <ClientsInfoButton />
-            <Button size="sm" render={<Link href="/dashboard/clients/new" className="gap-1.5" />}>
-              <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
-              New Client
-            </Button>
+            {canCreateClient ? (
+              <Button size="sm" render={<Link href="/dashboard/clients/new" className="gap-1.5" />}>
+                <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
+                New Client
+              </Button>
+            ) : null}
           </>
         }
       />
 
       <div className="p-4 md:p-6">
         {clients.length === 0 ? (
-          <EmptyState />
+          <EmptyState canCreateClient={canCreateClient} />
         ) : (
           <ClientsClient clients={clients} businessUnits={businessUnits} />
         )}
@@ -41,7 +44,7 @@ export default async function ClientsPage() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ canCreateClient }: { canCreateClient: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
       <div className="rounded-full bg-muted p-4">
@@ -53,10 +56,12 @@ function EmptyState() {
           Add clients to your directory so you can quickly select them when creating invoices.
         </p>
       </div>
-      <Button render={<Link href="/dashboard/clients/new" className="gap-1.5" />}>
-        <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
-        Add Client
-      </Button>
+      {canCreateClient ? (
+        <Button render={<Link href="/dashboard/clients/new" className="gap-1.5" />}>
+          <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
+          Add Client
+        </Button>
+      ) : null}
     </div>
   );
 }

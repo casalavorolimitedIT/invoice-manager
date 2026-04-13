@@ -14,6 +14,7 @@ import {
   Edit01Icon,
   GridViewIcon,
   GridTableIcon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 
@@ -192,6 +193,8 @@ export function BusinessUnitsClient({ units }: { units: BusinessUnit[] }) {
 
 function UnitCard({ bu }: { bu: BusinessUnit }) {
   const archived = bu.is_archived;
+  const isOwner = bu.current_user_role === "owner";
+
   return (
     <div
       className={`relative rounded-xl border bg-card overflow-hidden shadow-sm transition-shadow ${
@@ -199,13 +202,18 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
       }`}
     >
       {/* Brand color accent */}
-      <div className="h-1" style={{ backgroundColor: bu.brand_color ?? "#000000" }} />
+      <div className="h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
 
       <div className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="font-semibold text-sm flex items-center gap-1.5">
               {bu.name}
+              {!isOwner && (
+                <span className="text-[10px] font-medium border rounded px-1 py-0.5 text-sky-700 border-sky-200 bg-sky-50">
+                  Shared
+                </span>
+              )}
               {archived && (
                 <span className="text-[10px] font-medium border rounded px-1 py-0.5 text-muted-foreground border-muted-foreground/30">
                   Archived
@@ -233,7 +241,18 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
         </div>
 
         <div className="flex items-center gap-2 pt-1 border-t">
-          {!archived && (
+          {isOwner ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 text-xs"
+              render={<Link href={`/dashboard/business-units/${bu.id}/members`} />}
+            >
+              <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
+              Access
+            </Button>
+          ) : null}
+          {!archived && isOwner && (
             <Button
               size="sm"
               variant="ghost"
@@ -244,7 +263,7 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
               Edit
             </Button>
           )}
-          <BusinessUnitActions id={bu.id} name={bu.name} isArchived={archived} />
+          {isOwner ? <BusinessUnitActions id={bu.id} name={bu.name} isArchived={archived} /> : null}
         </div>
       </div>
     </div>
@@ -256,7 +275,7 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
 function TableView({ units }: { units: BusinessUnit[] }) {
   return (
     <div className="rounded-xl border border-border overflow-x-auto">
-      <table className="w-full text-sm min-w-[800px]">
+      <table className="w-full min-w-200 text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/40">
             <th className="px-4 py-3 text-left font-medium text-muted-foreground text-xs">Name</th>
@@ -291,11 +310,13 @@ function TableView({ units }: { units: BusinessUnit[] }) {
             >
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span
-                    className="size-2 rounded-full shrink-0"
-                    style={{ backgroundColor: bu.brand_color ?? "#000000" }}
-                  />
+                  <span className="size-2 rounded-full shrink-0 bg-primary/40" />
                   <span className="font-medium">{bu.name}</span>
+                  {bu.current_user_role !== "owner" ? (
+                    <Badge variant="outline" className="text-[10px] text-sky-700 border-sky-200 bg-sky-50">
+                      Shared
+                    </Badge>
+                  ) : null}
                 </div>
               </td>
               <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{bu.code}</td>
@@ -326,8 +347,19 @@ function TableView({ units }: { units: BusinessUnit[] }) {
                 )}
               </td>
               <td className="px-4 py-3 text-right">
-                <div className="flex items-center justify-end gap-1">
-                  {!bu.is_archived && (
+                <div className="flex items-center justify-end gap-2">
+                  {bu.current_user_role === "owner" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1 text-xs"
+                      render={<Link href={`/dashboard/business-units/${bu.id}/members`} />}
+                    >
+                      <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
+                      Access
+                    </Button>
+                  ) : null}
+                  {!bu.is_archived && bu.current_user_role === "owner" && (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -338,7 +370,9 @@ function TableView({ units }: { units: BusinessUnit[] }) {
                       Edit
                     </Button>
                   )}
-                  <BusinessUnitActions id={bu.id} name={bu.name} isArchived={bu.is_archived} />
+                  {bu.current_user_role === "owner" ? (
+                    <BusinessUnitActions id={bu.id} name={bu.name} isArchived={bu.is_archived} />
+                  ) : null}
                 </div>
               </td>
             </tr>
@@ -348,6 +382,7 @@ function TableView({ units }: { units: BusinessUnit[] }) {
     </div>
   );
 }
+
 
 // ── Empty state ──────────────────────────────────────────────────────────────
 

@@ -38,6 +38,10 @@ export const businessUnitSchema = z.object({
 
 export type BusinessUnitInput = z.infer<typeof businessUnitSchema>;
 
+export const BUSINESS_UNIT_MEMBER_ROLES = ["owner", "viewer"] as const;
+
+export type BusinessUnitMemberRole = (typeof BUSINESS_UNIT_MEMBER_ROLES)[number];
+
 export type BusinessUnit = BusinessUnitInput & {
   id: string;
   user_id: string;
@@ -45,6 +49,18 @@ export type BusinessUnit = BusinessUnitInput & {
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  current_user_role?: BusinessUnitMemberRole | null;
+  current_user_can_manage?: boolean;
+};
+
+export type BusinessUnitMember = {
+  user_id: string;
+  role: BusinessUnitMemberRole;
+  invited_by: string | null;
+  created_at: string;
+  email: string | null;
+  full_name: string | null;
+  avatar: string | null;
 };
 
 // ── Client ────────────────────────────────────────────────────────────────────

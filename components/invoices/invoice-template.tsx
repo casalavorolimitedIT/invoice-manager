@@ -199,6 +199,8 @@ export function InvoiceTemplate({
                   letterSpacing: "0.05em",
                   color: STATUS_CLR[status],
                   textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                  wordBreak: "keep-all",
                 }}
               >
                 {STATUS_LABEL[status]}

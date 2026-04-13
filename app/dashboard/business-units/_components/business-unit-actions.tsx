@@ -3,11 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DeleteModal } from "@/components/custom/DeleteModal";
-import {
-  archiveBusinessUnit,
-  unarchiveBusinessUnit,
-  deleteBusinessUnit,
-} from "@/app/dashboard/business-units/actions";
 import { appToast } from "@/lib/toast";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -33,9 +28,29 @@ export function BusinessUnitActions({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  async function requestBusinessUnitUpdate(method: "PATCH" | "DELETE", body?: Record<string, string | boolean>) {
+    const response = await fetch(`/dashboard/business-units/${id}/api`, {
+      method,
+      headers: body
+        ? {
+            "Content-Type": "application/json",
+          }
+        : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+    if (!response.ok) {
+      return { error: payload?.error ?? "Request failed." };
+    }
+
+    return payload ?? {};
+  }
+
   async function handleArchive() {
     setIsLoading(true);
-    const result = await archiveBusinessUnit(id);
+    const result = await requestBusinessUnitUpdate("PATCH", { isArchived: true });
     setIsLoading(false);
     if (result.error) {
       appToast.error("Failed to archive", { description: result.error });
@@ -47,7 +62,7 @@ export function BusinessUnitActions({
 
   async function handleUnarchive() {
     setIsLoading(true);
-    const result = await unarchiveBusinessUnit(id);
+    const result = await requestBusinessUnitUpdate("PATCH", { isArchived: false });
     setIsLoading(false);
     if (result.error) {
       appToast.error("Failed to restore", { description: result.error });
@@ -59,7 +74,7 @@ export function BusinessUnitActions({
 
   async function handleDelete() {
     setIsLoading(true);
-    const result = await deleteBusinessUnit(id);
+    const result = await requestBusinessUnitUpdate("DELETE");
     setIsLoading(false);
     if (result.error) {
       appToast.error("Failed to delete", { description: result.error });

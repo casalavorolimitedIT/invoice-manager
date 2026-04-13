@@ -14,7 +14,6 @@ export async function getInvoices(opts?: {
   let query = supabase
     .from("invoices")
     .select("*")
-    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (opts?.businessUnitId) {
@@ -39,7 +38,6 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
     .from("invoices")
     .select("*, items:invoice_items(*)")
     .eq("id", id)
-    .eq("user_id", user.id)
     .order("sort_order", { referencedTable: "invoice_items", ascending: true })
     .single();
 
@@ -55,8 +53,7 @@ export async function getInvoiceStats(businessUnitId?: string) {
 
   let query = supabase
     .from("invoices")
-    .select("status, total")
-    .eq("user_id", user.id);
+    .select("status, total");
 
   if (businessUnitId) {
     query = query.eq("business_unit_id", businessUnitId);

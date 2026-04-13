@@ -4,10 +4,6 @@ import { useState, useTransition } from "react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { DeleteModal } from "@/components/custom/DeleteModal";
-import {
-  updateInvoiceStatus,
-  deleteInvoice,
-} from "@/app/dashboard/invoices/actions";
 import { appToast } from "@/lib/toast";
 import { STATUS_LABELS, type InvoiceStatus } from "@/lib/types/invoice";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -54,14 +50,14 @@ interface InvoiceActionsProps {
   id: string;
   invoiceNumber: string;
   currentStatus: InvoiceStatus;
-  exportElementId?: string;
+  exportElementIds?: string[];
 }
 
 export function InvoiceActions({
   id,
   invoiceNumber,
   currentStatus,
-  exportElementId = "invoice-document",
+  exportElementIds = ["invoice-document"],
 }: InvoiceActionsProps) {
   const env = process.env.NODE_ENV || "development";
   const router = useRouter();
@@ -69,19 +65,40 @@ export function InvoiceActions({
   const [isExporting, setIsExporting] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  async function requestInvoiceUpdate(method: "PATCH" | "DELETE", body?: Record<string, string>) {
+    const response = await fetch(`/dashboard/invoices/${id}/api`, {
+      method,
+      headers: body
+        ? {
+            "Content-Type": "application/json",
+          }
+        : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string; redirectTo?: string }
+      | null;
+
+    if (!response.ok) {
+      return { error: payload?.error ?? "Request failed." };
+    }
+
+    return payload ?? {};
+  }
+
   const transitions = STATUS_TRANSITIONS[currentStatus] ?? [];
 
   function getInvoiceElement() {
-    const element = document.getElementById(exportElementId);
-
-    if (!element) {
-      appToast.error("Invoice export unavailable", {
-        description: "The rendered invoice could not be found on this page.",
-      });
-      return null;
+    for (const elementId of exportElementIds) {
+      const el = document.getElementById(elementId);
+      if (el) return el;
     }
 
-    return element;
+    appToast.error("Invoice export unavailable", {
+      description: "The rendered invoice could not be found on this page.",
+    });
+    return null;
   }
 
   function buildFileName(extension: string) {
@@ -123,7 +140,8 @@ export function InvoiceActions({
             const canvas = document.createElement("canvas");
             canvas.width = liveImg.naturalWidth;
             canvas.height = liveImg.naturalHeight;
-            canvas.getContext("2d")!.drawImage(liveImg, 0, 0);
+            const ctx = canvas.getContext("2d");
+            ctx?.drawImage(liveImg, 0, 0);
             cloneImg.src = canvas.toDataURL();
             cloneImg.removeAttribute("srcset");
             return;
@@ -166,40 +184,37 @@ export function InvoiceActions({
 
     setIsExporting(true);
 
-    try {
-      // Clone the node and pre-embed all images so html-to-image has zero
-      // external resources to fetch, eliminating the ProgressEvent failure.
-      const clone = invoiceElement.cloneNode(true) as HTMLElement;
-      const rect = invoiceElement.getBoundingClientRect();
-      const mount = document.createElement("div");
+    // The export always renders at this width regardless of viewport size.
+    const EXPORT_WIDTH = 820;
 
-      // Mount in a hidden in-viewport container. Some browsers produce a blank
-      // canvas when rendering fixed nodes far off-screen, even though layout
-      // exists. Keeping the clone in the viewport avoids that failure mode.
+    try {
+      const clone = invoiceElement.cloneNode(true) as HTMLElement;
+
+      // Mount wrapper: fixed at top-left corner, exact EXPORT_WIDTH, invisible.
+      // Must be IN the viewport so the browser actually paints the content.
+      // Using a fixed-width (not flex) container avoids the mobile-viewport
+      // shrink bug from earlier attempts.
+      const mount = document.createElement("div");
       mount.style.cssText = [
         "position:fixed",
-        "inset:0",
-        "overflow:hidden",
-        "opacity:0",
-        "pointer-events:none",
-        "z-index:-1",
-        "display:flex",
-        "align-items:flex-start",
-        "justify-content:flex-start",
-        "background:transparent",
-      ].join(";");
-
-      clone.style.cssText += [
-        "position:relative",
         "top:0",
         "left:0",
-        "margin:0",
-        `width:${Math.ceil(rect.width)}px`,
-        "max-width:none",
-        "min-height:auto",
-        "background:#ffffff",
+        `width:${EXPORT_WIDTH}px`,
+        "opacity:0",
         "pointer-events:none",
+        "overflow:visible",
+        "z-index:99999",
       ].join(";");
+
+      // Set only layout-critical overrides; do NOT touch cssText which would
+      // wipe the inline styles already on the template root element.
+      clone.style.position = "relative";
+      clone.style.width = `${EXPORT_WIDTH}px`;
+      clone.style.minWidth = `${EXPORT_WIDTH}px`;
+      clone.style.maxWidth = "none";
+      clone.style.margin = "0";
+      clone.style.background = "#ffffff";
+      clone.style.pointerEvents = "none";
 
       mount.appendChild(clone);
       document.body.appendChild(mount);
@@ -207,31 +222,24 @@ export function InvoiceActions({
       try {
         await embedImagesAsDataUrls(clone, invoiceElement);
 
+        // Two rAFs: first lets the browser parse/layout the appended node,
+        // second ensures a full paint pass has completed.
         await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => resolve());
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         });
 
-        const exportWidth = Math.max(
-          Math.ceil(rect.width),
-          Math.ceil(clone.scrollWidth),
-          Math.ceil(clone.offsetWidth),
-        );
         const exportHeight = Math.max(
-          Math.ceil(rect.height),
           Math.ceil(clone.scrollHeight),
           Math.ceil(clone.offsetHeight),
         );
 
         const exportOptions = {
           backgroundColor: "#ffffff",
-          // Provide an empty string so html-to-image skips the font-embedding
-          // branch entirely (fontEmbedCSS != null → use provided value → '').
           fontEmbedCSS: "",
           skipFonts: true,
           pixelRatio: 2,
-          width: exportWidth,
+          width: EXPORT_WIDTH,
           height: exportHeight,
-          // Safety net: skip any remaining non-data-URL images.
           filter: (node: HTMLElement) =>
             !(node instanceof HTMLImageElement) || node.src.startsWith("data:"),
         };
@@ -326,7 +334,7 @@ export function InvoiceActions({
         margin: 12mm;
       }
 
-      #${exportElementId} {
+      .invoice-print-root > * {
         max-width: none !important;
         min-height: auto !important;
         margin: 0 auto !important;
@@ -337,7 +345,7 @@ export function InvoiceActions({
     </style>
   </head>
   <body>
-    ${invoiceElement.outerHTML}
+    <div class="invoice-print-root">${invoiceElement.outerHTML}</div>
   </body>
 </html>`);
     printWindow.document.close();
@@ -351,7 +359,7 @@ export function InvoiceActions({
 
   function handleStatusChange(newStatus: InvoiceStatus) {
     startTransition(async () => {
-      const result = await updateInvoiceStatus(id, newStatus);
+      const result = await requestInvoiceUpdate("PATCH", { newStatus });
       if (result.error) {
         appToast.error("Status update failed", { description: result.error });
       } else {
@@ -363,12 +371,13 @@ export function InvoiceActions({
 
   function handleDelete() {
     startTransition(async () => {
-      const result = await deleteInvoice(id);
+      const result = await requestInvoiceUpdate("DELETE");
       if (result?.error) {
         appToast.error("Delete failed", { description: result.error });
         setDeleteOpen(false);
+      } else if (result?.redirectTo) {
+        router.push(result.redirectTo);
       }
-      // On success deleteInvoice redirects, no further action needed
     });
   }
 

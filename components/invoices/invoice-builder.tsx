@@ -10,7 +10,6 @@ import {
 } from "@/lib/types/invoice";
 import { LineItemsEditor, type LineItem } from "@/components/invoices/line-items-editor";
 import { InvoiceTemplate } from "@/components/invoices/invoice-template";
-import { createInvoice } from "@/app/dashboard/invoices/actions";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,6 +37,7 @@ import {
   AlertCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const PAYMENT_TERMS_OPTIONS = [
   { value: "Due on Receipt", label: "Due on Receipt" },
@@ -83,6 +83,7 @@ export function InvoiceBuilder({
   initialBusinessUnitId,
 }: InvoiceBuilderProps) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const initialBusinessUnit =
     businessUnits.find((businessUnit) => businessUnit.id === initialBusinessUnitId) ?? businessUnits[0];
@@ -244,7 +245,12 @@ export function InvoiceBuilder({
     setErrors([]);
 
     startTransition(async () => {
-      const result = await createInvoice({
+      const response = await fetch("/dashboard/invoices/api", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
         business_unit_id: buId,
         client_id: clientId || undefined,
         issue_date: issueDate,
@@ -264,10 +270,17 @@ export function InvoiceBuilder({
           total: item.quantity * item.unitPrice,
           sort_order: i,
         })),
+      })
       });
 
-      if (result?.error) {
-        appToast.error("Failed to create invoice", { description: result.error });
+      const result = (await response.json().catch(() => null)) as
+        | { error?: string; id?: string }
+        | null;
+
+      if (!response.ok || result?.error) {
+        appToast.error("Failed to create invoice", { description: result?.error ?? "Request failed." });
+      } else if (result?.id) {
+        router.push(`/dashboard/invoices/${result.id}`);
       }
     });
   }

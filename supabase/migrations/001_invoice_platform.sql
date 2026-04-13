@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS public.business_units (
 
 ALTER TABLE public.business_units ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "business_units_owner_all" ON public.business_units;
+
 CREATE POLICY "business_units_owner_all"
   ON public.business_units FOR ALL
   USING  (auth.uid() = user_id)
@@ -91,6 +93,8 @@ CREATE TABLE IF NOT EXISTS public.clients (
 
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "clients_owner_all" ON public.clients;
+
 CREATE POLICY "clients_owner_all"
   ON public.clients FOR ALL
   USING  (auth.uid() = user_id)
@@ -106,6 +110,8 @@ CREATE TABLE IF NOT EXISTS public.invoice_sequences (
 );
 
 ALTER TABLE public.invoice_sequences ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "invoice_sequences_bu_owner" ON public.invoice_sequences;
 
 CREATE POLICY "invoice_sequences_bu_owner"
   ON public.invoice_sequences FOR ALL
@@ -210,6 +216,8 @@ CREATE TABLE IF NOT EXISTS public.invoices (
 
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "invoices_owner_all" ON public.invoices;
+
 CREATE POLICY "invoices_owner_all"
   ON public.invoices FOR ALL
   USING  (auth.uid() = user_id)
@@ -229,6 +237,8 @@ CREATE TABLE IF NOT EXISTS public.invoice_items (
 );
 
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "invoice_items_invoice_owner" ON public.invoice_items;
 
 CREATE POLICY "invoice_items_invoice_owner"
   ON public.invoice_items FOR ALL
@@ -256,6 +266,8 @@ CREATE TABLE IF NOT EXISTS public.invoice_status_history (
 );
 
 ALTER TABLE public.invoice_status_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "invoice_status_history_invoice_owner" ON public.invoice_status_history;
 
 CREATE POLICY "invoice_status_history_invoice_owner"
   ON public.invoice_status_history FOR ALL

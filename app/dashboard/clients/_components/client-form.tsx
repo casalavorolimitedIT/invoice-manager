@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useState, useTransition } from "react";
 import type { Client, BusinessUnit } from "@/lib/types/invoice";
-import type { ClientActionState } from "@/app/dashboard/clients/actions";
+import { appToast } from "@/lib/toast";
+import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,31 +12,74 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BusinessUnitCombobox } from "@/components/custom/business-unit-combobox";
 import Link from "next/link";
 
-function SubmitButton({ isEdit }: { isEdit: boolean }) {
-  const { pending } = useFormStatus();
+function SubmitButton({ isEdit, isPending }: { isEdit: boolean; isPending: boolean }) {
   return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Saving…" : isEdit ? "Save Changes" : "Create Client"}
+    <Button type="submit" disabled={isPending}>
+      {isPending ? "Saving…" : isEdit ? "Save Changes" : "Create Client"}
     </Button>
   );
 }
 
+type ClientFormState = {
+  error?: string;
+  fieldErrors?: Record<string, string[] | undefined>;
+};
+
 interface ClientFormProps {
-  action: (state: ClientActionState, formData: FormData) => Promise<ClientActionState>;
+  id?: string;
   defaultValues?: Client;
   businessUnits: BusinessUnit[];
   initialBusinessUnitId?: string;
 }
 
-export function ClientForm({ action, defaultValues, businessUnits, initialBusinessUnitId }: ClientFormProps) {
-  const isEdit = Boolean(defaultValues);
-  const [state, formAction] = useActionState(action, {});
+export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUnitId }: ClientFormProps) {
+  const isEdit = Boolean(id);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [state, setState] = useState<ClientFormState>({});
   const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState(
     defaultValues?.business_unit_id ?? initialBusinessUnitId ?? ""
   );
 
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const payload: Record<string, string> = {};
+    formData.forEach((value, key) => {
+      if (typeof value === "string") {
+        payload[key] = value;
+      }
+    });
+
+    startTransition(async () => {
+      setState({});
+
+      const endpoint = id ? `/dashboard/clients/${id}/api` : "/dashboard/clients/api";
+      const response = await fetch(endpoint, {
+        method: id ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = (await response.json().catch(() => null)) as ClientFormState | null;
+
+      if (!response.ok || result?.error) {
+        setState({
+          error: result?.error ?? "Something went wrong. Please try again.",
+          fieldErrors: result?.fieldErrors,
+        });
+        return;
+      }
+
+      appToast.success(id ? "Client updated" : "Client created");
+      router.push("/dashboard/clients");
+      router.refresh();
+    });
+  }
+
   return (
-    <form action={formAction} className="space-y-8 max-w-4xl pb-16">
+    <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl pb-16">
       <Card>
         <CardHeader>
           <CardTitle>Client Assignment</CardTitle>
@@ -200,7 +243,7 @@ export function ClientForm({ action, defaultValues, businessUnits, initialBusine
 
       <div className="flex items-center justify-end gap-4 py-4">
         <Button variant="outline" render={<Link href="/dashboard/clients" />}>Cancel</Button>
-        <SubmitButton isEdit={isEdit} />
+        <SubmitButton isEdit={isEdit} isPending={isPending} />
       </div>
     </form>
   );

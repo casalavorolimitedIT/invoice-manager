@@ -11,7 +11,6 @@ export async function getClients(businessUnitId?: string): Promise<Client[]> {
   let query = supabase
     .from("clients")
     .select("*")
-    .eq("user_id", user.id)
     .eq("is_archived", false)
     .order("name", { ascending: true });
 
@@ -34,7 +33,6 @@ export async function getClient(id: string): Promise<Client | null> {
     .from("clients")
     .select("*")
     .eq("id", id)
-    .eq("user_id", user.id)
     .single();
 
   return (data as Client) ?? null;

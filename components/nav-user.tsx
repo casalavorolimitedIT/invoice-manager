@@ -1,7 +1,6 @@
 "use client";
 
 
-import { logout } from "@/app/(auth)/actions/auth-actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -152,16 +151,9 @@ export function NavUser({
                 <DropdownMenuSeparator />
               </>
             ) : null}
-            <DropdownMenuItem>
-              <form action={logout} className="w-full">
-                <button
-                  type="submit"
-                  className="w-full text-left flex justify-start items-center gap-2"
-                >
-                  <HugeiconsIcon icon={Logout01Icon} strokeWidth={2} />
-                  Log out
-                </button>
-              </form>
+            <DropdownMenuItem render={<Link href="/auth/logout" />}>
+              <HugeiconsIcon icon={Logout01Icon} strokeWidth={2} />
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

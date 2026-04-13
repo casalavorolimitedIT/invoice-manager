@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
-import { getBusinessUnit } from "@/lib/supabase/business-units";
+import { getOwnedBusinessUnit } from "@/lib/supabase/business-units";
+import { getBusinessUnitMembers } from "@/lib/supabase/business-unit-members";
 import { SiteHeader } from "@/components/site-header";
 import { BusinessUnitForm } from "../../_components/business-unit-form";
-import { updateBusinessUnit } from "../../actions";
+import { BusinessUnitMembersPanel } from "../../_components/business-unit-members-panel";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -13,15 +15,27 @@ interface Props {
 
 export default async function EditBusinessUnitPage({ params }: Props) {
   const { id } = await params;
-  const bu = await getBusinessUnit(id);
+  const [bu, members] = await Promise.all([
+    getOwnedBusinessUnit(id),
+    getBusinessUnitMembers(id),
+  ]);
   if (!bu) notFound();
-
-  // Bind the id so the form action receives it
-  const boundAction = updateBusinessUnit.bind(null, id);
 
   return (
     <>
-      <SiteHeader title={`Edit — ${bu.name}`} />
+      <SiteHeader
+        title={`Edit — ${bu.name}`}
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link href={`/dashboard/business-units/${bu.id}/members`} className="gap-1.5" />}
+          >
+            <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-4" />
+            Manage Access
+          </Button>
+        }
+      />
       <div className="p-4 md:p-6 w-full flex flex-col items-center justify-center">
         <div className="mb-6 w-full max-w-4xl">
           <Link
@@ -33,8 +47,11 @@ export default async function EditBusinessUnitPage({ params }: Props) {
           </Link>
         </div>
         <div className="w-full max-w-4xl">
-          <BusinessUnitForm action={boundAction} defaultValues={bu} />
+          <BusinessUnitForm id={bu.id} defaultValues={bu} />
         </div>
+        {/* <div className="mt-8 w-full max-w-4xl">
+          <BusinessUnitMembersPanel businessUnitId={bu.id} businessUnitName={bu.name} members={members} />
+        </div> */}
       </div>
     </>
   );
