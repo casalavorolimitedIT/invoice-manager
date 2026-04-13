@@ -4,7 +4,10 @@ import { useState, useTransition } from "react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { DeleteModal } from "@/components/custom/DeleteModal";
-import { updateInvoiceStatus, deleteInvoice } from "@/app/dashboard/invoices/actions";
+import {
+  updateInvoiceStatus,
+  deleteInvoice,
+} from "@/app/dashboard/invoices/actions";
 import { appToast } from "@/lib/toast";
 import { STATUS_LABELS, type InvoiceStatus } from "@/lib/types/invoice";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -25,10 +28,26 @@ const STATUS_TRANSITIONS: Record<InvoiceStatus, InvoiceStatus[]> = {
 };
 
 const STATUS_ICONS: Record<InvoiceStatus, React.ReactNode> = {
-  draft: <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} className="size-3.5" />,
-  sent: <HugeiconsIcon icon={Forward01Icon} strokeWidth={2} className="size-3.5" />,
-  paid: <HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} className="size-3.5" />,
-  overdue: <HugeiconsIcon icon={AlertCircleIcon} strokeWidth={2} className="size-3.5" />,
+  draft: (
+    <HugeiconsIcon icon={Clock01Icon} strokeWidth={2} className="size-3.5" />
+  ),
+  sent: (
+    <HugeiconsIcon icon={Forward01Icon} strokeWidth={2} className="size-3.5" />
+  ),
+  paid: (
+    <HugeiconsIcon
+      icon={CheckmarkCircle02Icon}
+      strokeWidth={2}
+      className="size-3.5"
+    />
+  ),
+  overdue: (
+    <HugeiconsIcon
+      icon={AlertCircleIcon}
+      strokeWidth={2}
+      className="size-3.5"
+    />
+  ),
 };
 
 interface InvoiceActionsProps {
@@ -44,6 +63,7 @@ export function InvoiceActions({
   currentStatus,
   exportElementId = "invoice-document",
 }: InvoiceActionsProps) {
+  const env = process.env.NODE_ENV || "development";
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -85,7 +105,9 @@ export function InvoiceActions({
     clone: HTMLElement,
     live: HTMLElement,
   ): Promise<void> {
-    const cloneImgs = Array.from(clone.querySelectorAll<HTMLImageElement>("img"));
+    const cloneImgs = Array.from(
+      clone.querySelectorAll<HTMLImageElement>("img"),
+    );
     const liveImgs = Array.from(live.querySelectorAll<HTMLImageElement>("img"));
 
     await Promise.all(
@@ -112,8 +134,12 @@ export function InvoiceActions({
 
         // Attempt 2 – fresh CORS fetch with a cache-busting param.
         try {
-          const cacheBustedSrc = src + (src.includes("?") ? "&" : "?") + "_dl=" + Date.now();
-          const res = await fetch(cacheBustedSrc, { mode: "cors", cache: "no-store" });
+          const cacheBustedSrc =
+            src + (src.includes("?") ? "&" : "?") + "_dl=" + Date.now();
+          const res = await fetch(cacheBustedSrc, {
+            mode: "cors",
+            cache: "no-store",
+          });
           const blob = await res.blob();
           const dataUrl = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -246,8 +272,8 @@ export function InvoiceActions({
 
             img.addEventListener("load", () => resolve(), { once: true });
             img.addEventListener("error", () => resolve(), { once: true });
-          })
-      )
+          }),
+      ),
     );
   }
 
@@ -266,7 +292,7 @@ export function InvoiceActions({
     }
 
     const stylesheetMarkup = Array.from(
-      document.querySelectorAll('style, link[rel="stylesheet"]')
+      document.querySelectorAll('style, link[rel="stylesheet"]'),
     )
       .map((node) => node.outerHTML)
       .join("\n");
@@ -381,30 +407,37 @@ export function InvoiceActions({
           Mark as {STATUS_LABELS[next]}
         </Button>
       ))}
-
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-9 w-full gap-1.5 text-xs text-destructive hover:text-destructive border-destructive/30 hover:border-destructive sm:ml-auto sm:h-8 sm:w-auto"
-        onClick={() => setDeleteOpen(true)}
-        disabled={isPending || isExporting}
-      >
-        <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-3.5" />
-        Delete
-      </Button>
-
-      <DeleteModal
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        onConfirm={handleDelete}
-        title="Delete Invoice"
-        description={
-          <>
-            Permanently delete invoice <strong>{invoiceNumber}</strong>? This cannot be undone.
-          </>
-        }
-        isLoading={isPending}
-      />
+      {env === "development" && (
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 w-full gap-1.5 text-xs text-destructive hover:text-destructive border-destructive/30 hover:border-destructive sm:ml-auto sm:h-8 sm:w-auto"
+            onClick={() => setDeleteOpen(true)}
+            disabled={isPending || isExporting}
+          >
+            <HugeiconsIcon
+              icon={Delete01Icon}
+              strokeWidth={2}
+              className="size-3.5"
+            />
+            Delete
+          </Button>
+          <DeleteModal
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            onConfirm={handleDelete}
+            title="Delete Invoice"
+            description={
+              <>
+                Permanently delete invoice <strong>{invoiceNumber}</strong>?
+                This cannot be undone.
+              </>
+            }
+            isLoading={isPending}
+          />
+        </>
+      )}
     </div>
   );
 }

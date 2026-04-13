@@ -10,7 +10,11 @@ import {
 } from "@/app/dashboard/business-units/actions";
 import { appToast } from "@/lib/toast";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Archive01Icon, Delete01Icon, ArrowReloadHorizontalIcon } from "@hugeicons/core-free-icons";
+import {
+  Archive01Icon,
+  Delete01Icon,
+  ArrowReloadHorizontalIcon,
+} from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 
 interface BusinessUnitActionsProps {
@@ -19,7 +23,12 @@ interface BusinessUnitActionsProps {
   isArchived?: boolean;
 }
 
-export function BusinessUnitActions({ id, name, isArchived = false }: BusinessUnitActionsProps) {
+export function BusinessUnitActions({
+  id,
+  name,
+  isArchived = false,
+}: BusinessUnitActionsProps) {
+  const env = process.env.NODE_ENV || "development";
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +71,7 @@ export function BusinessUnitActions({ id, name, isArchived = false }: BusinessUn
   }
 
   return (
-    <>
+    <div className="flex items-center space-x-2">
       {isArchived ? (
         <Button
           size="sm"
@@ -71,7 +80,11 @@ export function BusinessUnitActions({ id, name, isArchived = false }: BusinessUn
           onClick={handleUnarchive}
           disabled={isLoading}
         >
-          <HugeiconsIcon icon={ArrowReloadHorizontalIcon} strokeWidth={2} className="size-3.5" />
+          <HugeiconsIcon
+            icon={ArrowReloadHorizontalIcon}
+            strokeWidth={2}
+            className="size-3.5"
+          />
           Restore
         </Button>
       ) : (
@@ -82,34 +95,48 @@ export function BusinessUnitActions({ id, name, isArchived = false }: BusinessUn
           onClick={handleArchive}
           disabled={isLoading}
         >
-          <HugeiconsIcon icon={Archive01Icon} strokeWidth={2} className="size-3.5" />
+          <HugeiconsIcon
+            icon={Archive01Icon}
+            strokeWidth={2}
+            className="size-3.5"
+          />
           Archive
         </Button>
       )}
-      <Button
-        size="sm"
-        variant="ghost"
-        className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
-        onClick={() => setDeleteOpen(true)}
-        disabled={isLoading}
-      >
-        <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-3.5" />
-        Delete
-      </Button>
+      {env === "development" && (
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+            disabled={isLoading}
+          >
+            <HugeiconsIcon
+              icon={Delete01Icon}
+              strokeWidth={2}
+              className="size-3.5"
+            />
+            Delete
+          </Button>
 
-      <DeleteModal
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        onConfirm={handleDelete}
-        title="Delete Business Unit"
-        description={
-          <>
-            Permanently delete <strong>{name}</strong>? All associated invoices and clients will also be deleted. This cannot be undone.
-          </>
-        }
-        isLoading={isLoading}
-        variant="danger"
-      />
-    </>
+          <DeleteModal
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            onConfirm={handleDelete}
+            title="Delete Business Unit"
+            description={
+              <>
+                Permanently delete <strong>{name}</strong>? Linked clients will
+                be deleted, but deletion is blocked while invoices still point
+                to this business unit. Move or delete those invoices first.
+              </>
+            }
+            isLoading={isLoading}
+            variant="danger"
+          />
+        </>
+      )}
+    </div>
   );
 }

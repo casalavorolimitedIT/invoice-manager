@@ -70,7 +70,7 @@ export function ClientCombobox({
       <Combobox
         value={selectedOption}
         onValueChange={(nextValue) =>
-          onValueChange(nextValue?.value === MANUAL_ENTRY_VALUE ? "" : (nextValue?.value ?? ""))
+          onValueChange(nextValue?.value ?? "")
         }
         items={options}
       >

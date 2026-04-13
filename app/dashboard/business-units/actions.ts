@@ -9,6 +9,13 @@ export interface BusinessUnitActionState {
   fieldErrors?: Record<string, string[] | undefined>;
 }
 
+interface ActionError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+}
+
 async function getAuthUser() {
   const supabase = await createActionClient();
   const {
@@ -23,6 +30,25 @@ function cleanFormData(formData: FormData) {
     if (typeof value === "string") raw[key] = value;
   });
   return raw;
+}
+
+function getBusinessUnitActionError(error?: ActionError | null) {
+  if (!error) return undefined;
+
+  const details = [error.message, error.details, error.hint]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const hasLinkedInvoices =
+    error.code === "23503" &&
+    details.includes("invoices_business_unit_id_fkey");
+
+  if (hasLinkedInvoices) {
+    return "This business unit cannot be deleted because invoices are still linked to it. Move those invoices to another business unit or delete them first.";
+  }
+
+  return error.message;
 }
 
 export async function createBusinessUnit(
@@ -46,7 +72,7 @@ export async function createBusinessUnit(
     user_id: user.id,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: getBusinessUnitActionError(error) };
 
   redirect("/dashboard/business-units");
 }
@@ -76,7 +102,7 @@ export async function updateBusinessUnit(
     .eq("id", id)
     .eq("user_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: getBusinessUnitActionError(error) };
 
   redirect("/dashboard/business-units");
 }
@@ -91,7 +117,7 @@ export async function archiveBusinessUnit(id: string): Promise<{ error?: string 
     .eq("id", id)
     .eq("user_id", user.id);
 
-  return { error: error?.message };
+  return { error: getBusinessUnitActionError(error) };
 }
 
 export async function unarchiveBusinessUnit(id: string): Promise<{ error?: string }> {
@@ -104,7 +130,7 @@ export async function unarchiveBusinessUnit(id: string): Promise<{ error?: strin
     .eq("id", id)
     .eq("user_id", user.id);
 
-  return { error: error?.message };
+  return { error: getBusinessUnitActionError(error) };
 }
 
 export async function deleteBusinessUnit(id: string): Promise<{ error?: string }> {
@@ -117,7 +143,7 @@ export async function deleteBusinessUnit(id: string): Promise<{ error?: string }
     .eq("id", id)
     .eq("user_id", user.id);
 
-  return { error: error?.message };
+  return { error: getBusinessUnitActionError(error) };
 }
 
 /**
