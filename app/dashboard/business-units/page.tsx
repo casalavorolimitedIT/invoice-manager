@@ -1,4 +1,5 @@
 import { getAllBusinessUnits } from "@/lib/supabase/business-units";
+import { getCurrentUserProfile } from "@/lib/supabase/profile";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -8,7 +9,11 @@ import { BusinessUnitsInfoButton } from "./_components/business-units-info-butto
 import { BusinessUnitsClient } from "./_components/business-units-client";
 
 export default async function BusinessUnitsPage() {
-  const units = await getAllBusinessUnits();
+  const [{ profile }, units] = await Promise.all([
+    getCurrentUserProfile(),
+    getAllBusinessUnits(),
+  ]);
+  const canCreateBusinessUnits = profile?.role === "admin";
 
   return (
     <>
@@ -17,10 +22,12 @@ export default async function BusinessUnitsPage() {
         actions={
           <>
             <BusinessUnitsInfoButton />
-            <Button size="sm" render={<Link href="/dashboard/business-units/new" className="gap-1.5" />}>
-              <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
-              New Unit
-            </Button>
+            {canCreateBusinessUnits ? (
+              <Button size="sm" render={<Link href="/dashboard/business-units/new" className="gap-1.5" />}>
+                <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
+                New Unit
+              </Button>
+            ) : null}
           </>
         }
       />

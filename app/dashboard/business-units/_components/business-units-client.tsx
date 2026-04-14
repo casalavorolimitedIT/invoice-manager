@@ -201,6 +201,11 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
         archived ? "opacity-60 hover:opacity-80" : "hover:shadow-md"
       }`}
     >
+       {!isOwner && (
+                <span className="text-[10px] absolute -top-1 z-30 font-medium border rounded px-1 py-0.5 text-sky-700 border-sky-200 bg-sky-50">
+                  Shared
+                </span>
+              )}
       {/* Brand color accent */}
       <div className="h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
 
@@ -209,17 +214,14 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
           <div>
             <div className="font-semibold text-sm flex items-center gap-1.5">
               {bu.name}
-              {!isOwner && (
-                <span className="text-[10px] font-medium border rounded px-1 py-0.5 text-sky-700 border-sky-200 bg-sky-50">
-                  Shared
-                </span>
-              )}
+              
               {archived && (
                 <span className="text-[10px] font-medium border rounded px-1 py-0.5 text-muted-foreground border-muted-foreground/30">
                   Archived
                 </span>
               )}
             </div>
+           
             <div className="text-xs text-muted-foreground font-mono mt-0.5">{bu.code}</div>
           </div>
           <Badge variant="outline" className="text-xs shrink-0">
@@ -240,7 +242,7 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 pt-1 border-t">
+        <div className={`flex items-center gap-2 pt-1 ${isOwner ? "border-t" : ""}`}>
           {isOwner ? (
             <Button
               size="sm"

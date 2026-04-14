@@ -55,7 +55,7 @@ const data = {
       title: "Business Units",
       url: "/dashboard/business-units",
       icon: <HugeiconsIcon icon={Building01Icon} strokeWidth={2} />,
-      allowedRoles: ["admin"] as const,
+      allowedRoles: ["admin", "staff"] as const,
     },
     {
       title: "Reports",
