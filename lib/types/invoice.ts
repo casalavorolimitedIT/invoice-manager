@@ -26,6 +26,7 @@ export const businessUnitSchema = z.object({
   logo_url: z.string().optional(),
 
   bank_name: z.string().optional(),
+  account_holder_name: z.string().optional(),
   bank_account_number: z.string().optional(),
   bank_routing_number: z.string().optional(),
   bank_swift: z.string().optional(),
@@ -186,6 +187,7 @@ export type Invoice = {
   bu_phone: string | null;
   bu_tax_id: string | null;
   bu_bank_name: string | null;
+  bu_account_holder_name: string | null;
   bu_bank_account_number: string | null;
   bu_bank_swift: string | null;
   bu_bank_iban: string | null;
@@ -216,6 +218,7 @@ export interface InvoicePreviewPayload {
     email: string | null;
     taxId: string | null;
     bankName: string | null;
+    accountHolderName: string | null;
     bankAccount: string | null;
     bankSwift: string | null;
     bankIban: string | null;
@@ -268,6 +271,7 @@ export function invoiceToPreviewPayload(invoice: Invoice): InvoicePreviewPayload
       taxId: invoice.bu_tax_id,
       bankName: invoice.bu_bank_name,
       bankAccount: invoice.bu_bank_account_number,
+      accountHolderName: invoice.bu_account_holder_name,
       bankSwift: invoice.bu_bank_swift,
       bankIban: invoice.bu_bank_iban,
       logoUrl: invoice.bu_logo_url,
@@ -323,7 +327,7 @@ export function computeInvoiceTotals(
 
 // ── Utility: format currency ──────────────────────────────────────────────────
 
-export function formatCurrency(amount: number, currency = "USD"): string {
+export function formatCurrency(amount: number, currency = "NGN"): string {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency,

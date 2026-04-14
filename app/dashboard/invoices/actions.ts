@@ -89,6 +89,7 @@ export async function createInvoice(
       bu_phone: bu.phone ?? null,
       bu_tax_id: bu.tax_id ?? null,
       bu_bank_name: bu.bank_name ?? null,
+      bu_account_holder_name: bu.account_holder_name ?? null,
       bu_bank_account_number: bu.bank_account_number ?? null,
       bu_bank_swift: bu.bank_swift ?? null,
       bu_bank_iban: bu.bank_iban ?? null,

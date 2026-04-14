@@ -9,62 +9,11 @@ import { InvoiceActions } from "../_components/invoice-actions";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
-import type { InvoicePreviewPayload, InvoiceStatus } from "@/lib/types/invoice";
-import { STATUS_COLORS, STATUS_LABELS, formatCurrency } from "@/lib/types/invoice";
+import { STATUS_COLORS, STATUS_LABELS, formatCurrency, invoiceToPreviewPayload, type InvoiceStatus } from "@/lib/types/invoice";
 import { cn } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
-}
-
-function invoiceToPayload(inv: NonNullable<Awaited<ReturnType<typeof getInvoice>>>): InvoicePreviewPayload {
-  return {
-    invoiceNumber: inv.invoice_number,
-    issueDate: inv.issue_date,
-    dueDate: inv.due_date,
-    status: inv.status,
-    business: {
-      name: inv.bu_name,
-      address: inv.bu_address,
-      city: null,
-      state: null,
-      country: null,
-      phone: inv.bu_phone,
-      email: inv.bu_email,
-      taxId: inv.bu_tax_id,
-      bankName: inv.bu_bank_name,
-      bankAccount: inv.bu_bank_account_number,
-      bankSwift: inv.bu_bank_swift,
-      bankIban: inv.bu_bank_iban,
-      logoUrl: inv.bu_logo_url,
-      brandColor: inv.bu_brand_color ?? "#000000",
-      taxLabel: inv.bu_tax_label ?? "Tax",
-      footerLegalText: inv.bu_footer_legal_text,
-    },
-    client: {
-      name: inv.client_name,
-      company: inv.client_company,
-      email: inv.client_email,
-      address: inv.client_address,
-    },
-    items: (inv.items ?? []).map((item) => ({
-      description: item.description,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unit_price),
-      total: Number(item.total),
-    })),
-    subtotal: Number(inv.subtotal),
-    discountType: inv.discount_type,
-    discountValue: Number(inv.discount_value),
-    discountAmount: Number(inv.discount_amount),
-    taxRate: Number(inv.tax_rate),
-    taxLabel: inv.tax_label,
-    taxAmount: Number(inv.tax_amount),
-    total: Number(inv.total),
-    currency: inv.currency,
-    notes: inv.notes,
-    paymentTerms: inv.payment_terms,
-  };
 }
 
 async function getStatusHistory(invoiceId: string) {
@@ -107,7 +56,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
   const businessUnit = await getBusinessUnit(invoice.business_unit_id);
   const canManageInvoice = Boolean(user && businessUnit?.current_user_can_manage);
 
-  const payload = invoiceToPayload(invoice);
+  const payload = invoiceToPreviewPayload(invoice);
   const invoiceExportElementId = "invoice-document-export";
   const invoiceDesktopElementId = "invoice-document-desktop";
   const invoiceMobileElementId = "invoice-document-mobile";

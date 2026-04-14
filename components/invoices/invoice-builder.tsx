@@ -188,6 +188,7 @@ export function InvoiceBuilder({
       email: selectedBU?.email ?? null,
       taxId: selectedBU?.tax_id ?? null,
       bankName: selectedBU?.bank_name ?? null,
+      accountHolderName: selectedBU?.account_holder_name ?? null,
       bankAccount: selectedBU?.bank_account_number ?? null,
       bankSwift: selectedBU?.bank_swift ?? null,
       bankIban: selectedBU?.bank_iban ?? null,

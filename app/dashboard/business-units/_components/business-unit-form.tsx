@@ -57,6 +57,7 @@ const businessUnitSchema = yup.object().shape({
   payment_terms: yup.string().default("Net 30"),
 
   bank_name: yup.string().optional(),
+  account_holder_name: yup.string().optional(),
   bank_account_number: yup.string().optional(),
   bank_routing_number: yup.string().optional(),
   bank_swift: yup.string().optional(),
@@ -109,6 +110,7 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
       default_currency: defaultValues?.default_currency ?? "NGN",
       payment_terms: defaultValues?.payment_terms ?? "Net 30",
       bank_name: defaultValues?.bank_name ?? "",
+      account_holder_name: defaultValues?.account_holder_name ?? "",
       bank_account_number: defaultValues?.bank_account_number ?? "",
       bank_routing_number: defaultValues?.bank_routing_number ?? "",
       bank_swift: defaultValues?.bank_swift ?? "",
@@ -319,7 +321,11 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
           <CardDescription>Where your clients should send their payments.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
+          <div className="space-y-2">
+            <Label htmlFor="account_holder_name">Account Holder Name</Label>
+            <Input id="account_holder_name" placeholder="John Doe" {...register("account_holder_name")} />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="bank_name">Bank Name</Label>
             <Input id="bank_name" placeholder="First National Bank" {...register("bank_name")} />
           </div>

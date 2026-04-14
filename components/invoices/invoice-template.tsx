@@ -2,6 +2,7 @@ import type { InvoiceStatus, InvoicePreviewPayload } from "@/lib/types/invoice";
 import { formatCurrency } from "@/lib/types/invoice";
 import { cn } from "@/lib/utils";
 import SmartImage from "../custom/smart-images";
+import Image from "next/image";
 
 interface InvoiceTemplateProps {
   payload: InvoicePreviewPayload;
@@ -123,7 +124,7 @@ export function InvoiceTemplate({
             {business.logoUrl ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <SmartImage
+                <Image
                   src={business.logoUrl}
                   alt={business.name}
                   crossOrigin="anonymous"
@@ -414,7 +415,7 @@ export function InvoiceTemplate({
         </div>
 
         {/* ── FOOTER ── */}
-        {(notes || business.bankName || business.bankAccount || business.bankSwift || business.bankIban) && (
+        {(notes || business.bankName || business.accountHolderName || business.bankAccount || business.bankSwift || business.bankIban) && (
           <div
             style={{
               display: "grid",
@@ -440,10 +441,13 @@ export function InvoiceTemplate({
                 </div>
               </div>
             )}
-            {(business.bankName || business.bankAccount || business.bankSwift || business.bankIban) && (
+            {(business.bankName || business.accountHolderName || business.bankAccount || business.bankSwift || business.bankIban) && (
               <div>
                 <div style={sectionLabel}>Payment Details</div>
                 <div style={{ color: "#52525b", overflowWrap: "anywhere", wordBreak: "break-word" }}>
+                  {business.accountHolderName && (
+                    <div><span style={{ color: "#a1a1aa" }}>Account Holder:</span> {business.accountHolderName}</div>
+                  )}
                   {business.bankName && (
                     <div><span style={{ color: "#a1a1aa" }}>Bank:</span> {business.bankName}</div>
                   )}
