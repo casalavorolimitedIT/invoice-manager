@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { getUserOrNull } from "./auth";
 import { createClient } from "./server";
 
 export type ProfileRole = "admin" | "staff";
@@ -39,9 +40,7 @@ function mapAuthUserToProfileSeed(user: User) {
 
 export async function getCurrentUserProfile(): Promise<CurrentUserProfile> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUserOrNull(supabase);
 
   if (!user) {
     return { user: null, profile: null };

@@ -3,7 +3,6 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { BusinessUnit } from "@/lib/types/invoice";
-import { setActiveBusinessUnitScope } from "@/app/dashboard/actions/business-unit-scope";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -50,12 +49,26 @@ export function BusinessUnitScopeSwitcher({
 
   function handleSelectBusinessUnit(businessUnitId: string) {
     startTransition(async () => {
-      const result = await setActiveBusinessUnitScope(businessUnitId);
+      const response = await fetch("/dashboard/business-unit-scope/api", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ businessUnitId }),
+      });
 
-      if (!result?.error) {
+      const result = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      if (response.ok && !result?.error) {
         setIsOpen(false);
         router.refresh();
       }
+
       closeMobileSidebar?.();
     });
   }

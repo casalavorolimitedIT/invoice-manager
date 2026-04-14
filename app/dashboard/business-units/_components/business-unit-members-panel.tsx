@@ -19,7 +19,6 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete01Icon, Shield01Icon, UserAdd02Icon } from "@hugeicons/core-free-icons";
-import { useRouter } from "next/navigation";
 import type { BusinessUnitMemberRole } from "@/lib/types/invoice";
 
 interface BusinessUnitMembersPanelProps {
@@ -33,7 +32,6 @@ export function BusinessUnitMembersPanel({
   businessUnitName,
   members,
 }: BusinessUnitMembersPanelProps) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<BusinessUnitMemberRole>("viewer");
   const [isPending, startTransition] = useTransition();
@@ -75,7 +73,7 @@ export function BusinessUnitMembersPanel({
             ? `The invited user can now manage ${businessUnitName}.`
             : `The invited user can now view ${businessUnitName}.`,
       });
-      router.refresh();
+      window.location.reload();
     });
   }
 
@@ -94,7 +92,7 @@ export function BusinessUnitMembersPanel({
       appToast.success(role === "owner" ? "Member promoted to owner" : "Member changed to viewer", {
         description: `${member.full_name ?? member.email ?? "User"} now has ${role} access.`,
       });
-      router.refresh();
+      window.location.reload();
     });
   }
 
@@ -112,7 +110,7 @@ export function BusinessUnitMembersPanel({
       appToast.success("Member removed", {
         description: `${member.full_name ?? member.email ?? "User"} no longer has access.`,
       });
-      router.refresh();
+      window.location.reload();
     });
   }
 

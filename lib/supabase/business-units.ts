@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getUserOrNull } from "@/lib/supabase/auth";
 import type { BusinessUnit, BusinessUnitMemberRole } from "@/lib/types/invoice";
 
 type BusinessUnitMembershipRow = {
@@ -38,58 +39,60 @@ async function getCurrentUserMemberships(userId: string) {
   return (data as BusinessUnitMembershipRow[]) ?? [];
 }
 
+async function getAccessibleBusinessUnits(includeArchived: boolean) {
+  const supabase = await createClient();
+
+  const { data } = await supabase.rpc("get_accessible_business_units", {
+    p_include_archived: includeArchived,
+  });
+
+  return (data as BusinessUnit[]) ?? [];
+}
+
+async function getAccessibleBusinessUnit(id: string) {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .rpc("get_accessible_business_unit", {
+      p_business_unit_id: id,
+    })
+    .maybeSingle();
+
+  return (data as BusinessUnit | null) ?? null;
+}
+
 export async function getBusinessUnits(): Promise<BusinessUnit[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUserOrNull(supabase);
   if (!user) return [];
 
   const memberships = await getCurrentUserMemberships(user.id);
 
-  const { data } = await supabase
-    .from("business_units")
-    .select("*")
-    .eq("is_archived", false)
-    .order("created_at", { ascending: false });
+  const data = await getAccessibleBusinessUnits(false);
 
   return withCurrentUserAccess((data as BusinessUnit[]) ?? [], user.id, memberships);
 }
 
 export async function getAllBusinessUnits(): Promise<BusinessUnit[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUserOrNull(supabase);
   if (!user) return [];
 
   const memberships = await getCurrentUserMemberships(user.id);
 
-  const { data } = await supabase
-    .from("business_units")
-    .select("*")
-    .order("is_archived", { ascending: true })
-    .order("created_at", { ascending: false });
+  const data = await getAccessibleBusinessUnits(true);
 
   return withCurrentUserAccess((data as BusinessUnit[]) ?? [], user.id, memberships);
 }
 
 export async function getBusinessUnit(id: string): Promise<BusinessUnit | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUserOrNull(supabase);
   if (!user) return null;
 
   const memberships = await getCurrentUserMemberships(user.id);
 
-  const { data } = await supabase
-    .from("business_units")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  const businessUnit = (data as BusinessUnit | null) ?? null;
+  const businessUnit = await getAccessibleBusinessUnit(id);
 
   if (!businessUnit) {
     return null;
@@ -100,20 +103,12 @@ export async function getBusinessUnit(id: string): Promise<BusinessUnit | null> 
 
 export async function getOwnedBusinessUnit(id: string): Promise<BusinessUnit | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUserOrNull(supabase);
   if (!user) return null;
 
   const memberships = await getCurrentUserMemberships(user.id);
 
-  const { data } = await supabase
-    .from("business_units")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  const businessUnit = (data as BusinessUnit | null) ?? null;
+  const businessUnit = await getAccessibleBusinessUnit(id);
 
   if (!businessUnit) {
     return null;

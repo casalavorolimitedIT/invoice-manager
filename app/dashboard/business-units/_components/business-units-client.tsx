@@ -246,7 +246,7 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
               size="sm"
               variant="ghost"
               className="h-7 gap-1 text-xs"
-              render={<Link href={`/dashboard/business-units/${bu.id}/members`} />}
+              render={<a href={`/dashboard/business-units/${bu.id}/members`} title="Manage access" />}
             >
               <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
               Access
@@ -353,7 +353,7 @@ function TableView({ units }: { units: BusinessUnit[] }) {
                       size="sm"
                       variant="ghost"
                       className="h-7 gap-1 text-xs"
-                      render={<Link href={`/dashboard/business-units/${bu.id}/members`} />}
+                      render={<a href={`/dashboard/business-units/${bu.id}/members`} title="Manage access" />}
                     >
                       <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
                       Access

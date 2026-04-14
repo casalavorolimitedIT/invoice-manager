@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import { getOwnedBusinessUnit } from "@/lib/supabase/business-units";
-import { getBusinessUnitMembers } from "@/lib/supabase/business-unit-members";
 import { SiteHeader } from "@/components/site-header";
 import { BusinessUnitForm } from "../../_components/business-unit-form";
-import { BusinessUnitMembersPanel } from "../../_components/business-unit-members-panel";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
@@ -15,10 +13,7 @@ interface Props {
 
 export default async function EditBusinessUnitPage({ params }: Props) {
   const { id } = await params;
-  const [bu, members] = await Promise.all([
-    getOwnedBusinessUnit(id),
-    getBusinessUnitMembers(id),
-  ]);
+  const bu = await getOwnedBusinessUnit(id);
   if (!bu) notFound();
 
   return (
@@ -29,7 +24,7 @@ export default async function EditBusinessUnitPage({ params }: Props) {
           <Button
             size="sm"
             variant="outline"
-            render={<Link href={`/dashboard/business-units/${bu.id}/members`} className="gap-1.5" />}
+            render={<a href={`/dashboard/business-units/${bu.id}/members`} className="gap-1.5" title="Manage access" />}
           >
             <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-4" />
             Manage Access
