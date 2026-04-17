@@ -134,6 +134,22 @@ export default async function InvoiceDetailPage({ params }: Props) {
                     {formatCurrency(invoice.total, invoice.currency)}
                   </span>
                 </div>
+                {payload.paidAmount > 0 ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Paid Amount</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatCurrency(payload.paidAmount, invoice.currency)}
+                    </span>
+                  </div>
+                ) : null}
+                {payload.paidAmount > 0 || invoice.payment_terms === "Balance Due" ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Balance Due</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatCurrency(payload.balanceDue, invoice.currency)}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Currency</span>
                   <span className="font-mono text-xs">{invoice.currency}</span>

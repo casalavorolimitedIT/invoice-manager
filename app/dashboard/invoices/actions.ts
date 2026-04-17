@@ -46,6 +46,7 @@ export async function createInvoice(
   const taxBase = subtotal - discountAmount;
   const taxAmount = (taxBase * bu.default_tax_rate) / 100;
   const total = taxBase + taxAmount;
+  const paidAmount = Math.min(input.paid_amount ?? 0, total);
 
   // Atomic invoice number
   const year = new Date().getFullYear();
@@ -97,7 +98,10 @@ export async function createInvoice(
       bu_logo_url: bu.logo_url ?? null,
       bu_brand_color: bu.brand_color ?? null,
       bu_tax_label: bu.tax_label,
-      metadata: input.metadata ?? {},
+      metadata: {
+        ...(input.metadata ?? {}),
+        paid_amount: paidAmount,
+      },
     })
     .select("id")
     .single();

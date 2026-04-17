@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition } from "react";
 import type { BusinessUnit, Client, InvoicePreviewPayload } from "@/lib/types/invoice";
 import {
+  DEFAULT_PAYMENT_TERMS,
+  PAYMENT_TERMS_OPTIONS,
+  computeBalanceDue,
   computeInvoiceTotals,
   formatCurrency,
   addDaysToDate,
@@ -39,20 +42,11 @@ import {
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
-const PAYMENT_TERMS_OPTIONS = [
-  { value: "Due on Receipt", label: "Due on Receipt" },
-  { value: "Net 7", label: "Net 7" },
-  { value: "Net 14", label: "Net 14" },
-  { value: "Net 30", label: "Net 30" },
-  { value: "Net 45", label: "Net 45" },
-  { value: "Net 60", label: "Net 60" },
-  { value: "Net 90", label: "Net 90" },
-];
-
 interface InvoiceBuilderProps {
   businessUnits: BusinessUnit[];
   allClients: Client[];
   initialBusinessUnitId?: string;
+  initialClientId?: string;
 }
 
 function todayISO() {
@@ -81,26 +75,36 @@ export function InvoiceBuilder({
   businessUnits,
   allClients,
   initialBusinessUnitId,
+  initialClientId,
 }: InvoiceBuilderProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const initialBusinessUnit =
     businessUnits.find((businessUnit) => businessUnit.id === initialBusinessUnitId) ?? businessUnits[0];
+  const initialClient = initialClientId
+    ? allClients.find((client) => client.id === initialClientId)
+    : undefined;
+  const initialClientAddress = initialClient
+    ? [initialClient.address, initialClient.city, initialClient.state, initialClient.country]
+        .filter(Boolean)
+        .join(", ")
+    : "";
 
   const [buId, setBuId] = useState(initialBusinessUnit?.id ?? "");
-  const [clientId, setClientId] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [clientCompany, setClientCompany] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
+  const [clientId, setClientId] = useState(initialClient?.id ?? "");
+  const [clientName, setClientName] = useState(initialClient?.name ?? "");
+  const [clientCompany, setClientCompany] = useState(initialClient?.company ?? "");
+  const [clientEmail, setClientEmail] = useState(initialClient?.email ?? "");
+  const [clientAddress, setClientAddress] = useState(initialClientAddress);
   const [issueDate, setIssueDate] = useState(todayISO());
   const [dueDate, setDueDate] = useState(
-    addDaysToDate(todayISO(), paymentTermsToDays(initialBusinessUnit?.payment_terms ?? "Net 30"))
+    addDaysToDate(todayISO(), paymentTermsToDays(initialBusinessUnit?.payment_terms ?? DEFAULT_PAYMENT_TERMS))
   );
   const [paymentTerms, setPaymentTerms] = useState(
-    initialBusinessUnit?.payment_terms ?? "Net 30"
+    initialBusinessUnit?.payment_terms ?? DEFAULT_PAYMENT_TERMS
   );
+  const [paidAmount, setPaidAmount] = useState(0);
   const [notes, setNotes] = useState("");
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [discountValue, setDiscountValue] = useState(0);
@@ -114,22 +118,20 @@ export function InvoiceBuilder({
   const taxRate = selectedBU?.default_tax_rate ?? 0;
   const currency = selectedBU?.default_currency ?? "USD";
 
-  const totals = useMemo(
-    () =>
-      computeInvoiceTotals(
-        items.map((i) => ({ quantity: i.quantity, unitPrice: i.unitPrice })),
-        discountType,
-        discountValue,
-        taxRate
-      ),
-    [items, discountType, discountValue, taxRate]
+  const totals = computeInvoiceTotals(
+    items.map((item) => ({ quantity: item.quantity, unitPrice: item.unitPrice })),
+    discountType,
+    discountValue,
+    taxRate
   );
+  const balanceDue = computeBalanceDue(totals.total, paidAmount);
+  const showsBalanceDue = paidAmount > 0 || paymentTerms === "Balance Due";
 
   function handleBUChange(id: string) {
     setBuId(id);
     const bu = businessUnits.find((b) => b.id === id);
     if (bu) {
-      const terms = bu.payment_terms ?? "Net 30";
+      const terms = bu.payment_terms ?? DEFAULT_PAYMENT_TERMS;
       setPaymentTerms(terms);
       setDueDate(addDaysToDate(issueDate, paymentTermsToDays(terms)));
     }
@@ -217,6 +219,8 @@ export function InvoiceBuilder({
     taxLabel: selectedBU?.tax_label ?? "Tax",
     taxAmount: totals.taxAmount,
     total: totals.total,
+    paidAmount,
+    balanceDue,
     currency,
     notes: notes || null,
     paymentTerms,
@@ -263,6 +267,7 @@ export function InvoiceBuilder({
         discount_type: discountType,
         discount_value: discountValue,
         payment_terms: paymentTerms,
+        paid_amount: paidAmount,
         notes: notes || undefined,
         items: items.map((item, i) => ({
           description: item.description,
@@ -520,6 +525,21 @@ export function InvoiceBuilder({
                 className="w-full text-right font-mono"
               />
             </div>
+            <div className="space-y-1.5 sm:w-40">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Paid Amount
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                max={totals.total || undefined}
+                step="0.01"
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-full text-right font-mono"
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           {/* Summary */}
@@ -548,11 +568,25 @@ export function InvoiceBuilder({
                 </div>
               )}
               <div className="flex justify-between items-center px-4 py-3 bg-primary/5">
-                <span className="text-sm font-semibold">Total Due</span>
+                <span className="text-sm font-semibold">{showsBalanceDue ? "Total" : "Total Due"}</span>
                 <span className="text-base font-bold font-mono tabular-nums text-primary">
                   {formatCurrency(totals.total, currency)}
                 </span>
               </div>
+              {paidAmount > 0 && (
+                <div className="flex justify-between items-center px-4 py-2.5">
+                  <span className="text-sm text-muted-foreground">Paid Amount</span>
+                  <span className="text-sm font-mono tabular-nums">{formatCurrency(Math.min(paidAmount, totals.total), currency)}</span>
+                </div>
+              )}
+              {showsBalanceDue && (
+                <div className="flex justify-between items-center px-4 py-3 border-t border-border/60">
+                  <span className="text-sm font-semibold">Balance Due</span>
+                  <span className="text-base font-bold font-mono tabular-nums text-primary">
+                    {formatCurrency(balanceDue, currency)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </FieldGroup>

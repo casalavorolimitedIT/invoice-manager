@@ -41,6 +41,7 @@ export async function POST(request: Request) {
   const taxBase = subtotal - discountAmount;
   const taxAmount = (taxBase * bu.default_tax_rate) / 100;
   const total = taxBase + taxAmount;
+  const paidAmount = Math.min(input.paid_amount ?? 0, total);
 
   const year = new Date().getFullYear();
   const { data: seqNum, error: seqError } = await supabase.rpc("next_invoice_number", {
@@ -92,7 +93,10 @@ export async function POST(request: Request) {
       bu_logo_url: bu.logo_url ?? null,
       bu_brand_color: bu.brand_color ?? null,
       bu_tax_label: bu.tax_label,
-      metadata: input.metadata ?? {},
+      metadata: {
+        ...(input.metadata ?? {}),
+        paid_amount: paidAmount,
+      },
     })
     .select("id")
     .single();

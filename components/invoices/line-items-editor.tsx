@@ -103,7 +103,7 @@ export function LineItemsEditor({ items, currency = "USD", onChange }: LineItems
                 </div>
 
                 <div className="py-1.5 pr-3 flex items-center justify-end">
-                  <span className="text-sm font-semibold font-mono tabular-nums">
+                  <span className="text-xs font-semibold font-mono tabular-nums">
                     {formatCurrency(rowTotal, currency)}
                   </span>
                 </div>
@@ -113,7 +113,7 @@ export function LineItemsEditor({ items, currency = "USD", onChange }: LineItems
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-0"
+                    className="h-7 w-7 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 opacity-100 transition-all disabled:opacity-0 cursor-pointer disabled:pointer-events-none"
                     onClick={() => removeItem(item.id)}
                     disabled={items.length === 1}
                     aria-label="Remove line item"

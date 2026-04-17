@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import type { BusinessUnit } from "@/lib/types/invoice";
+import {
+  DEFAULT_PAYMENT_TERMS,
+  PAYMENT_TERMS_OPTIONS,
+  type BusinessUnit,
+} from "@/lib/types/invoice";
 import { appToast } from "@/components/custom/toast-ui";
 import { ImageUpload } from "@/components/custom/image-upload";
 
@@ -54,7 +58,7 @@ const businessUnitSchema = yup.object().shape({
   tax_label: yup.string().required("Tax label is required").default("Tax"),
   default_tax_rate: yup.number().typeError("Must be a number").min(0).max(100).default(0),
   default_currency: yup.string().required("Currency is required").default("NGN"),
-  payment_terms: yup.string().default("Net 30"),
+  payment_terms: yup.string().default(DEFAULT_PAYMENT_TERMS),
 
   bank_name: yup.string().optional(),
   account_holder_name: yup.string().optional(),
@@ -108,7 +112,7 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
       tax_label: defaultValues?.tax_label ?? "Tax",
       default_tax_rate: defaultValues?.default_tax_rate ?? 0,
       default_currency: defaultValues?.default_currency ?? "NGN",
-      payment_terms: defaultValues?.payment_terms ?? "Net 30",
+      payment_terms: defaultValues?.payment_terms ?? DEFAULT_PAYMENT_TERMS,
       bank_name: defaultValues?.bank_name ?? "",
       account_holder_name: defaultValues?.account_holder_name ?? "",
       bank_account_number: defaultValues?.bank_account_number ?? "",
@@ -124,6 +128,10 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
 
   const brandColor =
     useWatch({ control, name: "brand_color" }) || DEFAULT_BRAND_COLOR;
+  const paymentTerms = useWatch({ control, name: "payment_terms" }) || DEFAULT_PAYMENT_TERMS;
+  const paymentTermOptions = PAYMENT_TERMS_OPTIONS.some((option) => option.value === paymentTerms)
+    ? PAYMENT_TERMS_OPTIONS
+    : [...PAYMENT_TERMS_OPTIONS, { value: paymentTerms, label: paymentTerms }];
 
   const onSubmit = (data: yup.InferType<typeof businessUnitSchema>) => {
     startTransition(async () => {
@@ -280,7 +288,24 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="payment_terms">Default Payment Terms</Label>
-            <Input id="payment_terms" placeholder="Net 30" {...register("payment_terms")} />
+            <Controller
+              control={control}
+              name="payment_terms"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange} items={paymentTermOptions}>
+                  <SelectTrigger id="payment_terms" className="w-full h-12!">
+                    <SelectValue placeholder="Select payment terms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentTermOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value} label={option.label}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="default_currency">

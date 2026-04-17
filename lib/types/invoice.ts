@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+export const PAYMENT_TERMS_OPTIONS = [
+  { value: "Due on Receipt", label: "Due on Receipt" },
+  { value: "Balance Due", label: "Balance Due" },
+  { value: "Net 7", label: "Net 7" },
+  { value: "Net 14", label: "Net 14" },
+  { value: "Net 30", label: "Net 30" },
+  { value: "Net 45", label: "Net 45" },
+  { value: "Net 60", label: "Net 60" },
+  { value: "Net 90", label: "Net 90" },
+] as const;
+
+export const DEFAULT_PAYMENT_TERMS = "Net 30";
+
 // ── Business Unit ─────────────────────────────────────────────────────────────
 
 export const businessUnitSchema = z.object({
@@ -32,7 +45,7 @@ export const businessUnitSchema = z.object({
   bank_swift: z.string().optional(),
   bank_iban: z.string().optional(),
 
-  payment_terms: z.string().default("Net 30"),
+  payment_terms: z.string().default(DEFAULT_PAYMENT_TERMS),
   footer_legal_text: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -136,7 +149,8 @@ export const invoiceSchema = z.object({
 
   discount_type: z.enum(["percentage", "fixed"]).default("percentage"),
   discount_value: z.coerce.number().min(0).default(0),
-  payment_terms: z.string().default("Net 30"),
+  payment_terms: z.string().default(DEFAULT_PAYMENT_TERMS),
+  paid_amount: z.coerce.number().min(0).default(0),
   notes: z.string().optional(),
 
   items: z.array(invoiceItemSchema).min(1, "Add at least one line item"),
@@ -247,14 +261,39 @@ export interface InvoicePreviewPayload {
   taxLabel: string;
   taxAmount: number;
   total: number;
+  paidAmount: number;
+  balanceDue: number;
   currency: string;
   notes: string | null;
   paymentTerms: string;
 }
 
+function parsePaidAmountFromMetadata(metadata: Record<string, unknown> | undefined): number {
+  const raw = metadata?.paid_amount;
+  if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(0, raw);
+  if (typeof raw === "string") {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) return Math.max(0, parsed);
+  }
+  return 0;
+}
+
+export function resolveInvoicePaidAmount(invoice: Pick<Invoice, "metadata" | "total">): number {
+  return Math.min(parsePaidAmountFromMetadata(invoice.metadata), Math.max(0, invoice.total));
+}
+
+export function computeBalanceDue(total: number, paidAmount: number): number {
+  const safeTotal = Math.max(0, total);
+  const safePaidAmount = Math.min(Math.max(0, paidAmount), safeTotal);
+  return Math.max(0, safeTotal - safePaidAmount);
+}
+
 // ── Utility: build preview payload from an Invoice record ─────────────────────
 
 export function invoiceToPreviewPayload(invoice: Invoice): InvoicePreviewPayload {
+  const paidAmount = resolveInvoicePaidAmount(invoice);
+  const balanceDue = computeBalanceDue(invoice.total, paidAmount);
+
   return {
     invoiceNumber: invoice.invoice_number,
     issueDate: invoice.issue_date,
@@ -300,6 +339,8 @@ export function invoiceToPreviewPayload(invoice: Invoice): InvoicePreviewPayload
     taxLabel: invoice.tax_label,
     taxAmount: invoice.tax_amount,
     total: invoice.total,
+    paidAmount,
+    balanceDue,
     currency: invoice.currency,
     notes: invoice.notes,
     paymentTerms: invoice.payment_terms,
@@ -344,6 +385,9 @@ export function addDaysToDate(isoDate: string, days: number): string {
 }
 
 export function paymentTermsToDays(terms: string): number {
+  if (terms === "Due on Receipt" || terms === "Balance Due") {
+    return 0;
+  }
   const match = terms.match(/\d+/);
   return match ? parseInt(match[0], 10) : 30;
 }

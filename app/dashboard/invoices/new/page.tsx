@@ -7,17 +7,26 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export default async function NewInvoicePage() {
+interface NewInvoicePageProps {
+  searchParams: Promise<{ clientId?: string }>;
+}
+
+export default async function NewInvoicePage({ searchParams }: NewInvoicePageProps) {
+  const { clientId } = await searchParams;
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
   const clients = await getClients();
   const writableBusinessUnits = businessUnits.filter((businessUnit) => businessUnit.current_user_can_manage);
   const writableBusinessUnitIds = new Set(writableBusinessUnits.map((businessUnit) => businessUnit.id));
   const writableClients = clients.filter((client) => writableBusinessUnitIds.has(client.business_unit_id));
+  const initialClient = clientId
+    ? writableClients.find((client) => client.id === clientId)
+    : undefined;
   const writableActiveBusinessUnitId = writableBusinessUnits.some(
     (businessUnit) => businessUnit.id === activeBusinessUnitId
   )
     ? activeBusinessUnitId
     : writableBusinessUnits[0]?.id;
+  const initialBusinessUnitId = initialClient?.business_unit_id ?? writableActiveBusinessUnitId ?? undefined;
 
   if (businessUnits.length === 0) {
     redirect("/dashboard/business-units/new");
@@ -43,7 +52,8 @@ export default async function NewInvoicePage() {
         <InvoiceBuilder
           businessUnits={writableBusinessUnits}
           allClients={writableClients}
-          initialBusinessUnitId={writableActiveBusinessUnitId ?? undefined}
+          initialBusinessUnitId={initialBusinessUnitId}
+          initialClientId={initialClient?.id}
         />
       </div>
     </>

@@ -60,6 +60,8 @@ export function InvoiceTemplate({
     taxLabel,
     taxAmount,
     total,
+    paidAmount,
+    balanceDue,
     currency,
     notes,
     paymentTerms,
@@ -68,6 +70,7 @@ export function InvoiceTemplate({
   const accent = business.brandColor || "#18181b";
   const isPrev = variant === "preview";
   const f = (v: number) => formatCurrency(v, currency);
+  const showsBalanceDue = paidAmount > 0 || paymentTerms === "Balance Due";
 
   const addr = [
     business.address,
@@ -374,7 +377,7 @@ export function InvoiceTemplate({
 
         {/* ── TOTALS ── */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: isPrev ? 12 : 20 }}>
-          <div style={{ width: isPrev ? 180 : 260 }}>
+          <div style={{ width: isPrev ? 180 : 320 }}>
             {/* Subtotal */}
             <div style={{ display: "flex", justifyContent: "space-between", padding: isPrev ? "3px 0" : "5px 0", color: "#71717a" }}>
               <span>Subtotal</span>
@@ -408,9 +411,33 @@ export function InvoiceTemplate({
                 color: accent,
               }}
             >
-              <span>Total Due</span>
+              <span>{showsBalanceDue ? "Total" : "Total Due"}</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{f(total)}</span>
             </div>
+            {paidAmount > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: isPrev ? "5px 0 3px" : "8px 0 5px", color: "#71717a" }}>
+                <span>Paid Amount</span>
+                <span style={{ fontVariantNumeric: "tabular-nums", color: "#27272a" }}>{f(paidAmount)}</span>
+              </div>
+            )}
+            {showsBalanceDue && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: paidAmount > 0 ? (isPrev ? 4 : 8) : 0,
+                  paddingTop: isPrev ? 6 : 10,
+                  borderTop: paidAmount > 0 ? "1px solid #e4e4e7" : undefined,
+                  fontWeight: 700,
+                  fontSize: isPrev ? 12 : 16,
+                  color: accent,
+                }}
+              >
+                <span>Balance Due</span>
+                <span style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{f(balanceDue)}</span>
+              </div>
+            )}
           </div>
         </div>
 
