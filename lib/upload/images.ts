@@ -33,8 +33,8 @@ const DEFAULT_IMAGE_QUALITY = 0.82;
 const DEFAULT_TARGET_REDUCTION = 0.3; // aim for at least 30% reduction by default
 const MIN_ACCEPTABLE_REDUCTION = 0.05; // at least 5% reduction to consider it "compressed"
 const MAX_FILE_SIZE_FOR_ENFORCED_REDUCTION = 1024 * 1024; // 1MB - only enforce reduction above this size
-const MIN_IMAGE_SCALE = 0.45;
-const SCALE_REDUCTION_FACTOR = 0.82;
+const SCALE_REDUCTION_FACTOR = 0.75; // reduce output dimensions ~25% each extra pass
+const MIN_OUTPUT_DIMENSION = 800; // never go below 800px on the longest side
 const MAX_SCALE_ATTEMPTS = 4;
 
 function normalizeMimeType(type: string | undefined) {
@@ -219,17 +219,24 @@ export async function compressImage(
   const targetReduction = options?.targetReduction ?? DEFAULT_TARGET_REDUCTION;
   const targetMaxSize = file.size * (1 - targetReduction); // e.g. 50% of original
 
-  const image = await loadImageFromFile(file);
+  // Graceful fallback: some formats (e.g. HEIC on Chrome/Android) cannot be
+  // decoded via the canvas API. Upload the original rather than blocking the user.
+  let image: HTMLImageElement;
+  try {
+    image = await loadImageFromFile(file);
+  } catch {
+    return file;
+  }
+
   const initialQuality = options?.quality ?? DEFAULT_IMAGE_QUALITY;
-  const baseScale = Math.min(1, maxDimension / Math.max(image.width, image.height));
-  let workingScale = baseScale;
+  const initialScale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+  let currentWidth = Math.max(1, Math.round(image.width * initialScale));
+  let currentHeight = Math.max(1, Math.round(image.height * initialScale));
   let bestBlob: Blob | null = null;
 
   for (let attempt = 0; attempt < MAX_SCALE_ATTEMPTS; attempt += 1) {
-    const width = Math.max(1, Math.round(image.width * workingScale));
-    const height = Math.max(1, Math.round(image.height * workingScale));
-    const { canvas, context } = createCanvas(width, height);
-    context.drawImage(image, 0, 0, width, height);
+    const { canvas, context } = createCanvas(currentWidth, currentHeight);
+    context.drawImage(image, 0, 0, currentWidth, currentHeight);
 
     const candidateBlob = await compressCanvasBlob({
       canvas,
@@ -243,19 +250,20 @@ export async function compressImage(
       bestBlob = candidateBlob;
     }
 
-    const reductionFraction = 1 - candidateBlob.size / file.size;
-    const meetsReductionTarget = candidateBlob.size <= targetMaxSize;
-    const isMeaningfullySmaller = reductionFraction >= MIN_ACCEPTABLE_REDUCTION;
-
-    if (meetsReductionTarget || isMeaningfullySmaller) {
+    if (candidateBlob.size <= targetMaxSize) {
       break;
     }
 
-    if (workingScale <= MIN_IMAGE_SCALE) {
-      break;
+    // Reduce dimensions by ~25% for the next pass.
+    const nextWidth = Math.round(currentWidth * SCALE_REDUCTION_FACTOR);
+    const nextHeight = Math.round(currentHeight * SCALE_REDUCTION_FACTOR);
+
+    if (Math.max(nextWidth, nextHeight) < MIN_OUTPUT_DIMENSION) {
+      break; // don't shrink below minimum useful dimension
     }
 
-    workingScale = Math.max(MIN_IMAGE_SCALE, workingScale * SCALE_REDUCTION_FACTOR);
+    currentWidth = nextWidth;
+    currentHeight = nextHeight;
   }
 
   if (!bestBlob || bestBlob.size >= file.size) {
