@@ -5,10 +5,24 @@ export const DEFAULT_IMAGE_UPLOAD_BUCKET =
 export const GUEST_IDENTIFICATION_BUCKET = "guest-identifications";
 export const SUPPORTED_IMAGE_MIME_TYPES = new Set([
   "image/jpeg",
+  "image/pjpeg",
   "image/png",
   "image/webp",
   "image/jpg",
   "image/avif",
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+]);
+const SUPPORTED_IMAGE_EXTENSIONS = new Set([
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "avif",
+  "heic",
+  "heif",
 ]);
 export const SUPPORTED_IMAGE_ACCEPT = Array.from(
   SUPPORTED_IMAGE_MIME_TYPES,
@@ -19,6 +33,18 @@ const DEFAULT_IMAGE_QUALITY = 0.82;
 const DEFAULT_TARGET_REDUCTION = 0.3; // aim for at least 30% reduction by default
 const MIN_ACCEPTABLE_REDUCTION = 0.05; // at least 5% reduction to consider it "compressed"
 const MAX_FILE_SIZE_FOR_ENFORCED_REDUCTION = 1024 * 1024; // 1MB - only enforce reduction above this size
+const MIN_IMAGE_SCALE = 0.45;
+const SCALE_REDUCTION_FACTOR = 0.82;
+const MAX_SCALE_ATTEMPTS = 4;
+
+function normalizeMimeType(type: string | undefined) {
+  return (type ?? "").split(";")[0].trim().toLowerCase();
+}
+
+function getFileExtension(fileName: string) {
+  const extension = fileName.split(".").pop();
+  return extension?.trim().toLowerCase() ?? "";
+}
 
 function sanitizeFileName(fileName: string) {
   const baseName = fileName.replace(/\.[^.]+$/, "");
@@ -41,7 +67,11 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
 
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error("Could not read the selected image."));
+      reject(
+        new Error(
+          "Could not read the selected image in this browser. If this photo came directly from your camera, try switching the camera format to JPEG/Most Compatible and upload again."
+        )
+      );
     };
 
     image.src = objectUrl;
@@ -69,39 +99,38 @@ function canvasToBlob(
 }
 
 export function isSupportedImageType(file: File) {
-  return SUPPORTED_IMAGE_MIME_TYPES.has(file.type);
-}
+  const mimeType = normalizeMimeType(file.type);
 
-/**
- * Compresses an image, guaranteeing at least `targetReduction` size reduction
- * (default 50%). Uses a binary-search approach on quality to hit the target.
- */
-export async function compressImage(
-  file: File,
-  options?: {
-    maxDimension?: number;
-    quality?: number;
-    outputType?: string;
-    /** Fraction of original size to reduce by (0.5 = 50% smaller). Default: 0.5 */
-    targetReduction?: number;
-  },
-): Promise<File> {
-  if (!isSupportedImageType(file)) {
-    throw new Error("Please select a PNG, JPG, WebP, or AVIF image.");
+  if (SUPPORTED_IMAGE_MIME_TYPES.has(mimeType)) {
+    return true;
   }
 
-  const maxDimension = options?.maxDimension ?? DEFAULT_MAX_IMAGE_DIMENSION;
-  const outputType = options?.outputType ?? "image/webp";
-  const targetReduction = options?.targetReduction ?? DEFAULT_TARGET_REDUCTION;
-  const targetMaxSize = file.size * (1 - targetReduction); // e.g. 50% of original
+  return SUPPORTED_IMAGE_EXTENSIONS.has(getFileExtension(file.name));
+}
 
-  const image = await loadImageFromFile(file);
+function getResolvedOutputType(requestedType?: string) {
+  const normalizedRequestedType = normalizeMimeType(requestedType);
 
-  // --- Step 1: Calculate scaled dimensions ---
-  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
-  const width = Math.max(1, Math.round(image.width * scale));
-  const height = Math.max(1, Math.round(image.height * scale));
+  if (normalizedRequestedType && normalizedRequestedType !== "image/heic" && normalizedRequestedType !== "image/heif") {
+    return normalizedRequestedType;
+  }
 
+  return "image/webp";
+}
+
+function getOutputExtension(outputType: string) {
+  if (outputType === "image/webp") {
+    return "webp";
+  }
+
+  if (outputType === "image/png") {
+    return "png";
+  }
+
+  return "jpg";
+}
+
+function createCanvas(width: number, height: number) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -110,67 +139,130 @@ export async function compressImage(
   if (!context) {
     throw new Error("Your browser does not support image compression.");
   }
-  context.drawImage(image, 0, 0, width, height);
 
-  // --- Step 2: Try the requested quality first ---
-  const initialQuality = options?.quality ?? DEFAULT_IMAGE_QUALITY;
-  let bestBlob = await canvasToBlob(canvas, outputType, initialQuality);
+  return { canvas, context };
+}
 
-  // --- Step 3: Binary-search quality to meet target size ---
-  // If the initial blob is already smaller than original (at least some reduction) 
-  // and original is not too large (under 1MB), we can keep it without further aggressive reduction
-  const isLargeFile = file.size > MAX_FILE_SIZE_FOR_ENFORCED_REDUCTION;
-  const initialReductionFraction = 1 - bestBlob.size / file.size;
+async function compressCanvasBlob(options: {
+  canvas: HTMLCanvasElement;
+  outputType: string;
+  fileSize: number;
+  targetMaxSize: number;
+  initialQuality: number;
+}) {
+  let bestBlob = await canvasToBlob(options.canvas, options.outputType, options.initialQuality);
+  const isLargeFile = options.fileSize > MAX_FILE_SIZE_FOR_ENFORCED_REDUCTION;
+  const initialReductionFraction = 1 - bestBlob.size / options.fileSize;
 
-  if (bestBlob.size > targetMaxSize || (isLargeFile && initialReductionFraction < MIN_ACCEPTABLE_REDUCTION)) {
+  if (
+    bestBlob.size > options.targetMaxSize ||
+    (isLargeFile && initialReductionFraction < MIN_ACCEPTABLE_REDUCTION)
+  ) {
     let lo = 0.1;
-    let hi = initialQuality;
+    let hi = options.initialQuality;
     let iterations = 0;
     const MAX_ITERATIONS = 8;
 
     while (iterations < MAX_ITERATIONS) {
       const mid = parseFloat(((lo + hi) / 2).toFixed(2));
-      const candidate = await canvasToBlob(canvas, outputType, mid);
+      const candidate = await canvasToBlob(options.canvas, options.outputType, mid);
 
-      if (candidate.size <= targetMaxSize) {
-        // Candidate meets the target — keep it but try to go higher quality
+      if (candidate.size <= options.targetMaxSize) {
         bestBlob = candidate;
         lo = mid;
       } else {
-        // Still too large — reduce quality further
         hi = mid;
       }
 
-      // Stop if range is narrow enough or we're very close to target
-      if (hi - lo < 0.02 || Math.abs(candidate.size - targetMaxSize) < 1024) {
+      if (hi - lo < 0.02 || Math.abs(candidate.size - options.targetMaxSize) < 1024) {
         break;
+      }
+
+      if (candidate.size < bestBlob.size) {
+        bestBlob = candidate;
       }
 
       iterations++;
     }
 
-    // If binary search couldn't hit the target (highly compressed source),
-    // we only force minimum quality for large files. 
-    // For smaller files, we can accept higher sizes to preserve quality.
-    if (bestBlob.size > targetMaxSize && isLargeFile) {
-      bestBlob = await canvasToBlob(canvas, outputType, 0.1);
+    if (bestBlob.size > options.targetMaxSize && isLargeFile) {
+      const lowestQualityBlob = await canvasToBlob(options.canvas, options.outputType, 0.1);
+      if (lowestQualityBlob.size < bestBlob.size) {
+        bestBlob = lowestQualityBlob;
+      }
     }
   }
 
-  // Final check: if the compressed version is somehow larger than the original
-  // (e.g. converting a tiny PNG to WebP), use the original file content instead.
-  if (bestBlob.size >= file.size) {
+  return bestBlob;
+}
+
+/**
+ * Compresses an image, guaranteeing at least `targetReduction` size reduction
+ * (default 30%). Uses a binary-search approach on quality to hit the target.
+ */
+export async function compressImage(
+  file: File,
+  options?: {
+    maxDimension?: number;
+    quality?: number;
+    outputType?: string;
+    /** Fraction of original size to reduce by (0.5 = 50% smaller). Default: 0.3 */
+    targetReduction?: number;
+  },
+): Promise<File> {
+  if (!isSupportedImageType(file)) {
+    throw new Error("Please select a JPG, PNG, WebP, AVIF, HEIC, or HEIF image.");
+  }
+
+  const maxDimension = options?.maxDimension ?? DEFAULT_MAX_IMAGE_DIMENSION;
+  const outputType = getResolvedOutputType(options?.outputType);
+  const targetReduction = options?.targetReduction ?? DEFAULT_TARGET_REDUCTION;
+  const targetMaxSize = file.size * (1 - targetReduction); // e.g. 50% of original
+
+  const image = await loadImageFromFile(file);
+  const initialQuality = options?.quality ?? DEFAULT_IMAGE_QUALITY;
+  const baseScale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+  let workingScale = baseScale;
+  let bestBlob: Blob | null = null;
+
+  for (let attempt = 0; attempt < MAX_SCALE_ATTEMPTS; attempt += 1) {
+    const width = Math.max(1, Math.round(image.width * workingScale));
+    const height = Math.max(1, Math.round(image.height * workingScale));
+    const { canvas, context } = createCanvas(width, height);
+    context.drawImage(image, 0, 0, width, height);
+
+    const candidateBlob = await compressCanvasBlob({
+      canvas,
+      outputType,
+      fileSize: file.size,
+      targetMaxSize,
+      initialQuality,
+    });
+
+    if (!bestBlob || candidateBlob.size < bestBlob.size) {
+      bestBlob = candidateBlob;
+    }
+
+    const reductionFraction = 1 - candidateBlob.size / file.size;
+    const meetsReductionTarget = candidateBlob.size <= targetMaxSize;
+    const isMeaningfullySmaller = reductionFraction >= MIN_ACCEPTABLE_REDUCTION;
+
+    if (meetsReductionTarget || isMeaningfullySmaller) {
+      break;
+    }
+
+    if (workingScale <= MIN_IMAGE_SCALE) {
+      break;
+    }
+
+    workingScale = Math.max(MIN_IMAGE_SCALE, workingScale * SCALE_REDUCTION_FACTOR);
+  }
+
+  if (!bestBlob || bestBlob.size >= file.size) {
     return file;
   }
 
-  // --- Step 4: If image dimensions were also scaled down, re-render at smaller size ---
-  // This kicks in for images wider than maxDimension regardless of quality
-  if (scale < 1) {
-    // We've already drawn at scaled size — blob is already dimension-reduced
-    // No extra work needed; the canvas was drawn at (width, height) above
-  }
-
-  const extension = outputType === "image/webp" ? "webp" : "jpg";
+  const extension = getOutputExtension(outputType);
   const compressedFile = new File(
     [bestBlob],
     `${sanitizeFileName(file.name) || "image"}.${extension}`,
