@@ -28,9 +28,9 @@ export const SUPPORTED_IMAGE_ACCEPT = Array.from(
   SUPPORTED_IMAGE_MIME_TYPES,
 ).join(",");
 
-const DEFAULT_MAX_IMAGE_DIMENSION = 1600;
-const DEFAULT_IMAGE_QUALITY = 0.82;
-const DEFAULT_TARGET_REDUCTION = 0.3; // aim for at least 30% reduction by default
+const DEFAULT_MAX_IMAGE_DIMENSION = 1200;
+const DEFAULT_IMAGE_QUALITY = 0.72;
+const DEFAULT_TARGET_REDUCTION = 0.75; // aim for at least 75% reduction by default
 const MIN_ACCEPTABLE_REDUCTION = 0.05; // at least 5% reduction to consider it "compressed"
 const MAX_FILE_SIZE_FOR_ENFORCED_REDUCTION = 1024 * 1024; // 1MB - only enforce reduction above this size
 const SCALE_REDUCTION_FACTOR = 0.75; // reduce output dimensions ~25% each extra pass
