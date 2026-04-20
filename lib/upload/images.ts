@@ -29,10 +29,10 @@ export const SUPPORTED_IMAGE_ACCEPT = Array.from(
 ).join(",");
 
 const DEFAULT_MAX_IMAGE_DIMENSION = 950; // max width or height in pixels when resizing large images
-const DEFAULT_IMAGE_QUALITY = 0.50; //
+const DEFAULT_IMAGE_QUALITY = 0.50; // default image quality for compression
 const DEFAULT_TARGET_REDUCTION = 0.85; // aim for at least 85% reduction by default
 const ABSOLUTE_MAX_OUTPUT_BYTES = 500 * 1024; // 500 KB hard ceiling for any upload
-const MIN_ACCEPTABLE_REDUCTION = 0.05; // at least 5% reduction to consider it "compressed"
+const MIN_ACCEPTABLE_REDUCTION = 0.15; // at least 15% reduction to consider it "compressed"
 const MAX_FILE_SIZE_FOR_ENFORCED_REDUCTION = 1024 * 1024; // 1MB - only enforce reduction above this size
 const SCALE_REDUCTION_FACTOR = 0.75; // reduce output dimensions ~25% each extra pass
 const MIN_OUTPUT_DIMENSION = 800; // never go below 800px on the longest side
