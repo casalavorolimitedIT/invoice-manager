@@ -31,6 +31,7 @@ export const SUPPORTED_IMAGE_ACCEPT = Array.from(
 const DEFAULT_MAX_IMAGE_DIMENSION = 950; // max width or height in pixels when resizing large images
 const DEFAULT_IMAGE_QUALITY = 0.50; //
 const DEFAULT_TARGET_REDUCTION = 0.85; // aim for at least 85% reduction by default
+const ABSOLUTE_MAX_OUTPUT_BYTES = 500 * 1024; // 500 KB hard ceiling for any upload
 const MIN_ACCEPTABLE_REDUCTION = 0.05; // at least 5% reduction to consider it "compressed"
 const MAX_FILE_SIZE_FOR_ENFORCED_REDUCTION = 1024 * 1024; // 1MB - only enforce reduction above this size
 const SCALE_REDUCTION_FACTOR = 0.75; // reduce output dimensions ~25% each extra pass
@@ -217,7 +218,9 @@ export async function compressImage(
   const maxDimension = options?.maxDimension ?? DEFAULT_MAX_IMAGE_DIMENSION;
   const outputType = getResolvedOutputType(options?.outputType);
   const targetReduction = options?.targetReduction ?? DEFAULT_TARGET_REDUCTION;
-  const targetMaxSize = file.size * (1 - targetReduction); // e.g. 50% of original
+  // Effective target: never exceed 500 KB, regardless of targetReduction
+  const reductionTarget = file.size * (1 - targetReduction);
+  const targetMaxSize = Math.min(reductionTarget, ABSOLUTE_MAX_OUTPUT_BYTES);
 
   // Graceful fallback: some formats (e.g. HEIC on Chrome/Android) cannot be
   // decoded via the canvas API. Upload the original rather than blocking the user.

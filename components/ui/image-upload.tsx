@@ -80,7 +80,7 @@ export function ImageUpload({
   urlPlaceholder = "https://",
   className,
   previewClassName = "aspect-video w-full",
-  targetReduction = 0.75,
+  targetReduction = 0.85,
 }: ImageUploadProps) {
   const generatedId = React.useId();
   const baseId = id ?? generatedId;

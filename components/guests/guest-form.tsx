@@ -333,7 +333,7 @@ export function GuestForm({
               publicSlug: selectedBusinessUnit.public_guest_form_slug,
               fileName: imageFile.name,
             }),
-            targetReduction: 0.2,
+            targetReduction: 0.75,
           });
 
           identificationImagePath = uploadResult.path;
