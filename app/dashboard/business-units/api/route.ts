@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createActionClient } from "@/lib/supabase/action";
 import { businessUnitSchema } from "@/lib/types/invoice";
+import { normalizePublicGuestFormSlug } from "@/lib/business-unit-public-slug";
 
 interface ActionError {
   message: string;
@@ -46,6 +47,11 @@ export async function POST(request: Request) {
     .insert({
       ...result.data,
       code: result.data.code.toUpperCase().trim(),
+      public_guest_form_slug: normalizePublicGuestFormSlug({
+        explicitSlug: result.data.public_guest_form_slug,
+        code: result.data.code,
+        name: result.data.name,
+      }),
       user_id: user.id,
     })
     .select("id")

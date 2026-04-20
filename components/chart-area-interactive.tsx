@@ -190,7 +190,7 @@ export function ChartAreaInteractive() {
           </ToggleGroup>
           <Select
             value={timeRange}
-            onValueChange={(value) => {
+            onValueChange={(value: React.SetStateAction<string> | null) => {
               if (value !== null) {
                 setTimeRange(value)
               }

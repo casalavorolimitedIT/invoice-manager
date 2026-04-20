@@ -93,7 +93,7 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
           </div>
           <div className="space-y-1.5 relative lg:top-1.5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Business Unit</p>
-            <Select value={businessUnitFilter} onValueChange={(value) => {
+            <Select value={businessUnitFilter} onValueChange={(value: any) => {
               setPage(0);
               setBusinessUnitFilter(value as any);
             }} items={businessUnits.map((businessUnit) => ({ value: businessUnit.id, label: businessUnit.name }))}>
@@ -112,7 +112,7 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
           </div>
           <div className="space-y-1.5 relative lg:top-1.5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Access</p>
-            <Select value={accessFilter} onValueChange={(value) => {
+            <Select value={accessFilter} onValueChange={(value: string) => {
               setPage(0);
               setAccessFilter(value as "all" | "manageable" | "view-only");
             }} items={[

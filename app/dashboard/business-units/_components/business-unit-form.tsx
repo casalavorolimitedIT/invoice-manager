@@ -10,6 +10,7 @@ import {
   PAYMENT_TERMS_OPTIONS,
   type BusinessUnit,
 } from "@/lib/types/invoice";
+import { derivePublicGuestFormSlug } from "@/lib/business-unit-public-slug";
 import { appToast } from "@/components/custom/toast-ui";
 import { ImageUpload } from "@/components/custom/image-upload";
 
@@ -42,6 +43,7 @@ const emptyToNull = (v: string | undefined | null, o: string | undefined | null)
 const businessUnitSchema = yup.object().shape({
   name: yup.string().required("Business Name is required"),
   code: yup.string().required("Code is required").max(10, "Max 10 characters"),
+  public_guest_form_slug: yup.string().nullable().transform(emptyToNull).min(3, "Min 3 characters").max(80, "Max 80 characters").optional(),
   category: yup.string().optional(),
   website: yup.string().nullable().transform(emptyToNull).url("Must be a valid URL").optional(),
 
@@ -86,6 +88,13 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | undefined>();
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [currentOrigin] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.location.origin.replace(/\/$/, "");
+    }
+
+    return process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") ?? "{BASEURL}";
+  });
 
   const {
     register,
@@ -98,6 +107,7 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
     defaultValues: {
       name: defaultValues?.name ?? "",
       code: defaultValues?.code ?? "",
+      public_guest_form_slug: defaultValues?.public_guest_form_slug ?? "",
       category: defaultValues?.category ?? "",
       website: defaultValues?.website ?? "",
       address: defaultValues?.address ?? "",
@@ -128,10 +138,31 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
 
   const brandColor =
     useWatch({ control, name: "brand_color" }) || DEFAULT_BRAND_COLOR;
+  const businessName = useWatch({ control, name: "name" }) || "";
+  const businessCode = useWatch({ control, name: "code" }) || "";
+  const publicGuestFormSlug = useWatch({ control, name: "public_guest_form_slug" }) || "";
   const paymentTerms = useWatch({ control, name: "payment_terms" }) || DEFAULT_PAYMENT_TERMS;
   const paymentTermOptions = PAYMENT_TERMS_OPTIONS.some((option) => option.value === paymentTerms)
     ? PAYMENT_TERMS_OPTIONS
     : [...PAYMENT_TERMS_OPTIONS, { value: paymentTerms, label: paymentTerms }];
+
+  function handleGeneratePublicGuestFormSlug() {
+    const generatedSlug = derivePublicGuestFormSlug({
+      name: businessName,
+      code: businessCode,
+    });
+
+    if (!generatedSlug) {
+      appToast.error("Enter a business name or code before generating a slug.");
+      return;
+    }
+
+    setValue("public_guest_form_slug", generatedSlug, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  }
 
   const onSubmit = (data: yup.InferType<typeof businessUnitSchema>) => {
     startTransition(async () => {
@@ -164,7 +195,7 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
 
       const payload: Record<string, unknown> = {};
       Object.entries({ ...data, logo_url: logoUrl || undefined }).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null && value !== "") {
           payload[key] = value;
         }
       });
@@ -212,11 +243,36 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="public_guest_form_slug">Public Guest Form Slug</Label>
+            <div className="flex gap-2">
+              <Input
+                id="public_guest_form_slug"
+                placeholder="e.g. cv-lagos-frontdesk"
+                {...register("public_guest_form_slug")}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                onClick={handleGeneratePublicGuestFormSlug}
+              >
+                Generate
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Shared as {`${currentOrigin}/walk-in-guest/${publicGuestFormSlug || "[slug]"}`} for your public intake form.
+            </p>
+            {errors.public_guest_form_slug && (
+              <p className="text-[11px] text-destructive">{errors.public_guest_form_slug.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2 ">
             <Label htmlFor="category">Category</Label>
             <Input id="category" placeholder="IT, Real Estate, Finance…" {...register("category")} />
           </div>
 
-          <div className="space-y-2 sm:col-span-2">
+          <div className="space-y-2">
             <Label htmlFor="website">Website</Label>
             <Input id="website" type="url" placeholder="https://example.com" {...register("website")} />
             {errors.website && <p className="text-[11px] text-destructive">{errors.website.message}</p>}

@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUserOrNull } from "@/lib/supabase/auth";
-import type { BusinessUnit, BusinessUnitMemberRole } from "@/lib/types/invoice";
+import type {
+  BusinessUnit,
+  BusinessUnitMemberRole,
+  PublicGuestFormBusinessUnit,
+} from "@/lib/types/invoice";
 
 type BusinessUnitMembershipRow = {
   business_unit_id: string;
@@ -121,4 +125,18 @@ export async function getOwnedBusinessUnit(id: string): Promise<BusinessUnit | n
   }
 
   return businessUnitWithAccess;
+}
+
+export async function getPublicGuestFormBusinessUnit(
+  slug: string
+): Promise<PublicGuestFormBusinessUnit | null> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .rpc("get_public_guest_form_business_unit", {
+      p_slug: slug,
+    })
+    .maybeSingle();
+
+  return (data as PublicGuestFormBusinessUnit | null) ?? null;
 }

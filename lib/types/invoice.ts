@@ -13,11 +13,30 @@ export const PAYMENT_TERMS_OPTIONS = [
 
 export const DEFAULT_PAYMENT_TERMS = "Net 30";
 
+const emptyStringToUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
+const optionalString = z.preprocess(emptyStringToUndefined, z.string().optional());
+
+const requiredEmail = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim() : value),
+  z.string().email("Enter a valid email address")
+);
+
+const optionalDate = z.preprocess(
+  emptyStringToUndefined,
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD").optional()
+);
+
 // ── Business Unit ─────────────────────────────────────────────────────────────
 
 export const businessUnitSchema = z.object({
   name: z.string().min(1, "Name is required"),
   code: z.string().min(1, "Code is required").max(10, "Max 10 characters"),
+  public_guest_form_slug: z.preprocess(
+    emptyStringToUndefined,
+    z.string().min(3, "Min 3 characters").max(80, "Max 80 characters").optional()
+  ),
   category: z.string().optional(),
   website: z.string().optional(),
 
@@ -77,6 +96,11 @@ export type BusinessUnitMember = {
   avatar: string | null;
 };
 
+export type PublicGuestFormBusinessUnit = Pick<
+  BusinessUnit,
+  "id" | "name" | "code" | "category" | "public_guest_form_slug"
+>;
+
 // ── Client ────────────────────────────────────────────────────────────────────
 
 export const clientSchema = z.object({
@@ -103,6 +127,57 @@ export type Client = ClientInput & {
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+};
+
+// ── Guest ─────────────────────────────────────────────────────────────────────
+
+export const GUEST_GENDERS = ["female", "male", "non-binary", "prefer-not-to-say"] as const;
+export type GuestGender = (typeof GUEST_GENDERS)[number];
+
+export const GUEST_IDENTIFICATION_TYPES = [
+  "passport",
+  "drivers-license",
+  "national-id",
+  "voters-card",
+  "residence-permit",
+  "other",
+] as const;
+export type GuestIdentificationType = (typeof GUEST_IDENTIFICATION_TYPES)[number];
+
+export const guestSchema = z.object({
+  business_unit_id: z.string().uuid("Select a business unit"),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  phone_number: z.string().min(1, "Phone number is required"),
+  email: requiredEmail,
+  birthday: optionalDate,
+  gender: z.enum(GUEST_GENDERS, { error: "Select a gender" }),
+  nationality: z.string().min(1, "Nationality is required"),
+  identification_type: z.enum(GUEST_IDENTIFICATION_TYPES, {
+    error: "Select a means of identification",
+  }),
+  identification_number: optionalString,
+  identification_image_path: z.preprocess(
+    emptyStringToUndefined,
+    z.string({ error: "Identification image is required" })
+  ),
+  emergency_contact: z.string().min(1, "Emergency contact is required"),
+  notes: optionalString,
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export type GuestInput = z.infer<typeof guestSchema>;
+
+export type Guest = GuestInput & {
+  id: string;
+  user_id: string;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GuestWithImageUrl = Guest & {
+  identification_image_url?: string | null;
 };
 
 // ── Invoice ───────────────────────────────────────────────────────────────────

@@ -64,7 +64,7 @@ export function InvoiceActivityFilters({
 
           <div className="space-y-1.5 relative lg:top-1.5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
-            <Select value={status} onValueChange={(value) => onStatusChange(value as InvoiceStatusFilter)} items={STATUS_OPTIONS}>
+            <Select value={status} onValueChange={(value: string) => onStatusChange(value as InvoiceStatusFilter)} items={STATUS_OPTIONS}>
               <SelectTrigger className="h-11! w-full">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>

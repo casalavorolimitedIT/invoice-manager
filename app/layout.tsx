@@ -21,8 +21,13 @@ export const metadata: Metadata = {
   description:
     "An invoice management application built with Next.js, Supabase, and Tailwind CSS. Create, manage, and track your invoices with ease.",
     icons: {
-      icon: "/casalogo2.png",
-    },
+    icon: [
+      {
+        url: "/casalogo2.png",
+        href: "/casalogo2.png",
+      },
+    ],
+  },
 
 };
 
@@ -33,9 +38,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      {/* <head>
-        <link rel="icon" type="image/png" href="/casalogo2.png" />
-      </head> */}
       <body
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

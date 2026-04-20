@@ -7,7 +7,56 @@ import { cn } from "@/lib/utils"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { UnfoldMoreIcon, Tick02Icon, ArrowUp01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons"
 
-const Select = SelectPrimitive.Root
+const SelectItemsContext = React.createContext<unknown[] | undefined>(undefined)
+
+const defaultIsItemEqualToValue = (item: unknown, value: unknown) =>
+  item !== null && typeof item === "object"
+    ? (item as Record<string, unknown>).value === value
+    : item === value
+
+const defaultItemToStringLabel = (item: unknown) =>
+  item !== null && typeof item === "object"
+    ? String((item as Record<string, unknown>).label ?? "")
+    : String(item ?? "")
+
+function getSelectItemLabel(items: unknown[] | undefined, value: unknown): React.ReactNode {
+  const matchedItem = items?.find((item) => {
+    if (item !== null && typeof item === "object") {
+      return Object.is((item as Record<string, unknown>).value, value)
+    }
+
+    return Object.is(item, value)
+  })
+
+  if (matchedItem !== null && typeof matchedItem === "object") {
+    const label = (matchedItem as Record<string, React.ReactNode>).label
+
+    if (label !== undefined) {
+      return label
+    }
+  }
+
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  return String(value)
+}
+
+const Select = ({
+  isItemEqualToValue = defaultIsItemEqualToValue,
+  itemToStringLabel = defaultItemToStringLabel,
+  ...props
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+}: SelectPrimitive.Root.Props<any>) => (
+  <SelectItemsContext.Provider value={Array.isArray(props.items) ? props.items : undefined}>
+    <SelectPrimitive.Root
+      isItemEqualToValue={isItemEqualToValue}
+      itemToStringLabel={itemToStringLabel}
+      {...props}
+    />
+  </SelectItemsContext.Provider>
+);
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -19,13 +68,21 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ className, children, ...props }: SelectPrimitive.Value.Props) {
+  const items = React.useContext(SelectItemsContext)
+  const renderValue = React.useCallback(
+    (value: unknown) => getSelectItemLabel(items, value),
+    [items]
+  )
+
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
       className={cn("flex flex-1 text-left", className)}
       {...props}
-    />
+    >
+      {children ?? renderValue}
+    </SelectPrimitive.Value>
   )
 }
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import * as React from "react"
@@ -539,7 +540,7 @@ export function DataTable({
               </Label>
               <Select
                 value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
+                onValueChange={(value: any) => {
                   table.setPageSize(Number(value))
                 }}
                 items={[10, 20, 30, 40, 50].map((pageSize) => ({

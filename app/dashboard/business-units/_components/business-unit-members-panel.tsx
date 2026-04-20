@@ -171,7 +171,7 @@ export function BusinessUnitMembersPanel({
             </div>
             <div className="">
               <Label htmlFor="invite-member-role mb-2 block">Role</Label>
-              <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as BusinessUnitMemberRole)}>
+              <Select value={inviteRole} onValueChange={(value: string) => setInviteRole(value as BusinessUnitMemberRole)}>
                 <SelectTrigger id="invite-member-role" className="w-full h-12!">
                   <SelectValue />
                 </SelectTrigger>
@@ -218,7 +218,7 @@ export function BusinessUnitMembersPanel({
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Role</p>
               <Select
                 value={roleFilter}
-                onValueChange={(value) => {
+                onValueChange={(value: string) => {
                   setPage(0);
                   setRoleFilter(value as "all" | BusinessUnitMemberRole);
                 }}
@@ -275,7 +275,7 @@ export function BusinessUnitMembersPanel({
                         ) : (
                           <Select
                             value={member.role}
-                            onValueChange={(value) => handleRoleChange(member, value as BusinessUnitMemberRole)}
+                            onValueChange={(value: string) => handleRoleChange(member, value as BusinessUnitMemberRole)}
                           >
                             <SelectTrigger size="sm" className="w-28">
                               <SelectValue />

@@ -500,7 +500,7 @@ export function InvoiceBuilder({
               </Label>
               <Select
                 value={discountType}
-                onValueChange={(v) => setDiscountType(v as "percentage" | "fixed")}
+                onValueChange={(v: string) => setDiscountType(v as "percentage" | "fixed")}
                 items={[{ value: "percentage", label: "% Discount" }, { value: "fixed", label: "Fixed Discount" }]}
               >
                 <SelectTrigger className="w-full h-12!">
