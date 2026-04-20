@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { Client, BusinessUnit } from "@/lib/types/invoice";
+import type { Client, BusinessUnit, GuestWithImageUrl } from "@/lib/types/invoice";
 import { appToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,41 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BusinessUnitCombobox } from "@/components/custom/business-unit-combobox";
 import Link from "next/link";
+
+const identificationLabels: Record<string, string> = {
+  passport: "Passport",
+  "drivers-license": "Driver's License",
+  "national-id": "National ID",
+  "voters-card": "Voter's Card",
+  "residence-permit": "Residence Permit",
+  other: "Other",
+};
+
+function buildImportedGuestNotes(guest: GuestWithImageUrl) {
+  const details = [
+    guest.nationality ? `Nationality: ${guest.nationality}` : null,
+    guest.emergency_contact ? `Emergency contact: ${guest.emergency_contact}` : null,
+    guest.identification_type
+      ? `Identification: ${identificationLabels[guest.identification_type] ?? guest.identification_type}${guest.identification_number ? ` (${guest.identification_number})` : ""}`
+      : null,
+  ].filter(Boolean);
+
+  if (details.length === 0) {
+    return "Imported from guest record.";
+  }
+
+  return [`Imported from guest record.`, ...details].join("\n");
+}
+
+function buildImportedGuestDefaults(guest: GuestWithImageUrl): Partial<Client> {
+  return {
+    business_unit_id: guest.business_unit_id,
+    name: [guest.first_name, guest.last_name].filter(Boolean).join(" "),
+    email: guest.email,
+    phone: guest.phone_number,
+    notes: buildImportedGuestNotes(guest),
+  };
+}
 
 function SubmitButton({ isEdit, isPending }: { isEdit: boolean; isPending: boolean }) {
   return (
@@ -30,15 +65,17 @@ interface ClientFormProps {
   defaultValues?: Client;
   businessUnits: BusinessUnit[];
   initialBusinessUnitId?: string;
+  importedGuest?: GuestWithImageUrl | null;
 }
 
-export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUnitId }: ClientFormProps) {
+export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUnitId, importedGuest }: ClientFormProps) {
   const isEdit = Boolean(id);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<ClientFormState>({});
+  const importedGuestDefaults = !isEdit && importedGuest ? buildImportedGuestDefaults(importedGuest) : undefined;
   const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState(
-    defaultValues?.business_unit_id ?? initialBusinessUnitId ?? ""
+    defaultValues?.business_unit_id ?? importedGuestDefaults?.business_unit_id ?? initialBusinessUnitId ?? ""
   );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -54,6 +91,10 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
 
     startTransition(async () => {
       setState({});
+
+      if (importedGuest && !id) {
+        payload.source_guest_id = importedGuest.id;
+      }
 
       const endpoint = id ? `/dashboard/clients/${id}/api` : "/dashboard/clients/api";
       const response = await fetch(endpoint, {
@@ -80,6 +121,12 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl pb-16">
+      {!isEdit && importedGuest ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+          Creating a client from guest record <span className="font-medium">{importedGuest.first_name} {importedGuest.last_name}</span>.
+        </div>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Client Assignment</CardTitle>
@@ -120,7 +167,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               name="name"
               required
               placeholder="Jane Smith"
-              defaultValue={defaultValues?.name ?? ""}
+              defaultValue={defaultValues?.name ?? importedGuestDefaults?.name ?? ""}
             />
             {state.fieldErrors?.name && (
               <p className="text-[11px] text-destructive">{state.fieldErrors.name[0]}</p>
@@ -133,7 +180,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               id="company"
               name="company"
               placeholder="Acme Corp"
-              defaultValue={defaultValues?.company ?? ""}
+              defaultValue={defaultValues?.company ?? importedGuestDefaults?.company ?? ""}
             />
           </div>
 
@@ -143,7 +190,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               id="tax_id"
               name="tax_id"
               placeholder="VAT-12345"
-              defaultValue={defaultValues?.tax_id ?? ""}
+              defaultValue={defaultValues?.tax_id ?? importedGuestDefaults?.tax_id ?? ""}
             />
           </div>
 
@@ -154,7 +201,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               name="email"
               type="email"
               placeholder="jane@example.com"
-              defaultValue={defaultValues?.email ?? ""}
+              defaultValue={defaultValues?.email ?? importedGuestDefaults?.email ?? ""}
             />
           </div>
 
@@ -165,7 +212,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               name="phone"
               type="tel"
               placeholder="+1 555 000 0000"
-              defaultValue={defaultValues?.phone ?? ""}
+              defaultValue={defaultValues?.phone ?? importedGuestDefaults?.phone ?? ""}
             />
           </div>
         </CardContent>
@@ -183,13 +230,13 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               id="address"
               name="address"
               placeholder="123 Main St"
-              defaultValue={defaultValues?.address ?? ""}
+              defaultValue={defaultValues?.address ?? importedGuestDefaults?.address ?? ""}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
-            <Input id="city" name="city" placeholder="Lagos" defaultValue={defaultValues?.city ?? ""} />
+            <Input id="city" name="city" placeholder="Lagos" defaultValue={defaultValues?.city ?? importedGuestDefaults?.city ?? ""} />
           </div>
 
           <div className="space-y-2">
@@ -198,7 +245,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               id="state"
               name="state"
               placeholder="Lagos State"
-              defaultValue={defaultValues?.state ?? ""}
+              defaultValue={defaultValues?.state ?? importedGuestDefaults?.state ?? ""}
             />
           </div>
 
@@ -208,7 +255,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               id="country"
               name="country"
               placeholder="Nigeria"
-              defaultValue={defaultValues?.country ?? ""}
+              defaultValue={defaultValues?.country ?? importedGuestDefaults?.country ?? ""}
             />
           </div>
 
@@ -218,7 +265,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               id="postal_code"
               name="postal_code"
               placeholder="100001"
-              defaultValue={defaultValues?.postal_code ?? ""}
+              defaultValue={defaultValues?.postal_code ?? importedGuestDefaults?.postal_code ?? ""}
             />
           </div>
 
@@ -229,7 +276,7 @@ export function ClientForm({ id, defaultValues, businessUnits, initialBusinessUn
               name="notes"
               placeholder="Internal notes about this client."
               rows={3}
-              defaultValue={defaultValues?.notes ?? ""}
+              defaultValue={defaultValues?.notes ?? importedGuestDefaults?.notes ?? ""}
             />
           </div>
         </CardContent>

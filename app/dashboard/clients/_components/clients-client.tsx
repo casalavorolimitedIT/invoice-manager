@@ -36,6 +36,17 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
     () => Object.fromEntries(businessUnits.map((businessUnit) => [businessUnit.id, businessUnit])),
     [businessUnits]
   );
+    const hasActiveFilters =
+    search.trim() !== "" ||
+    businessUnitFilter !== "all" ||
+    accessFilter !== "all";
+
+  function clearFilters() {
+    setPage(0);
+    setSearch("");
+    setBusinessUnitFilter("all");
+    setAccessFilter("all");
+  }
 
   const filteredClients = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -131,10 +142,19 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
             </Select>
           </div>
         </div>
+          {hasActiveFilters ? (
+          <div className="mt-3 flex justify-end">
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs text-muted-foreground hover:text-foreground">
+              {/* X icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-1.5 h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              Clear filters
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {filteredClients.length > 0 ? (
-        <div className="rounded-xl border overflow-hidden">
+        <div className="rounded-xl border overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 border-b">
               <tr>
@@ -152,7 +172,7 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
                 return (
                   <tr key={client.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <div className="font-medium">{client.name}</div>
+                      <div className="font-medium w-[180px] min-w-0 text-wrap">{client.name}</div>
                       {client.company && (
                         <div className="text-xs text-muted-foreground">{client.company}</div>
                       )}

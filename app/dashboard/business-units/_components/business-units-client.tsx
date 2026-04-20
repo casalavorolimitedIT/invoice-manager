@@ -28,7 +28,7 @@ export function BusinessUnitsClient({ units }: { units: BusinessUnit[] }) {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-  const [view, setView] = useState<ViewMode>("card");
+  const [view, setView] = useState<ViewMode>("table");
 
   const pageSize = view === "card" ? CARD_PAGE_SIZE : TABLE_PAGE_SIZE;
 

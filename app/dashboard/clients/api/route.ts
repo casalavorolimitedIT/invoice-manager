@@ -22,8 +22,30 @@ export async function POST(request: Request) {
     );
   }
 
+  let sourceGuestMetadata: Record<string, string> | undefined;
+  const sourceGuestId = typeof body?.source_guest_id === "string" ? body.source_guest_id : undefined;
+
+  if (sourceGuestId) {
+    const { data: sourceGuest } = await supabase
+      .from("guests")
+      .select("id, first_name, last_name, business_unit_id")
+      .eq("id", sourceGuestId)
+      .eq("is_archived", false)
+      .maybeSingle();
+
+    if (!sourceGuest || sourceGuest.business_unit_id !== result.data.business_unit_id) {
+      return NextResponse.json({ error: "Selected guest could not be imported into this business unit." }, { status: 400 });
+    }
+
+    sourceGuestMetadata = {
+      source_guest_id: sourceGuest.id,
+      source_guest_name: [sourceGuest.first_name, sourceGuest.last_name].filter(Boolean).join(" "),
+    };
+  }
+
   const { error } = await supabase.from("clients").insert({
     ...result.data,
+    ...(sourceGuestMetadata ? { metadata: sourceGuestMetadata } : {}),
     user_id: user.id,
   });
 

@@ -10,7 +10,7 @@ import { DeleteModal } from "@/components/custom/DeleteModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Delete02Icon, Edit01Icon, ViewIcon } from "@hugeicons/core-free-icons";
+import { Delete02Icon, Edit01Icon, UserGroupIcon, ViewIcon } from "@hugeicons/core-free-icons";
 
 export function GuestActions({
   guest,
@@ -25,6 +25,7 @@ export function GuestActions({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const env = process.env.NODE_ENV;
 
   async function handleDelete() {
     setIsDeleting(true);
@@ -33,7 +34,9 @@ export function GuestActions({
         method: "DELETE",
       });
 
-      const result = (await response.json().catch(() => null)) as { error?: string } | null;
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok || result?.error) {
         appToast.error(result?.error ?? "Failed to delete guest");
         return;
@@ -50,7 +53,12 @@ export function GuestActions({
   return (
     <>
       <div className="flex items-center justify-end gap-1">
-        <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs" onClick={() => setDetailsOpen(true)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 gap-1 text-xs"
+          onClick={() => setDetailsOpen(true)}
+        >
           <HugeiconsIcon icon={ViewIcon} strokeWidth={2} className="size-3.5" />
           View
         </Button>
@@ -60,24 +68,56 @@ export function GuestActions({
               size="sm"
               variant="ghost"
               className="h-8 gap-1 text-xs"
+              render={<Link href={`/dashboard/clients/new?guestId=${guest.id}`} />}
+            >
+              <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
+              Create Client
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 gap-1 text-xs"
               render={<Link href={`/dashboard/guest-list/${guest.id}/edit`} />}
             >
-              <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} className="size-3.5" />
+              <HugeiconsIcon
+                icon={Edit01Icon}
+                strokeWidth={2}
+                className="size-3.5"
+              />
               Edit
             </Button>
-            <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-destructive" onClick={() => setDeleteOpen(true)}>
-              <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="size-3.5" />
-              Delete
-            </Button>
+            {env === "development" && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-1 text-xs text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <HugeiconsIcon
+                  icon={Delete02Icon}
+                  strokeWidth={2}
+                  className="size-3.5"
+                />
+                Delete
+              </Button>
+            )}
           </>
         ) : (
-          <Badge variant="outline" className="text-xs text-sky-700 border-sky-200 bg-sky-50">
+          <Badge
+            variant="outline"
+            className="text-xs text-sky-700 border-sky-200 bg-sky-50"
+          >
             View only
           </Badge>
         )}
       </div>
 
-      <GuestDetailsDialog guest={guest} businessUnits={businessUnits} open={detailsOpen} onOpenChange={setDetailsOpen} />
+      <GuestDetailsDialog
+        guest={guest}
+        businessUnits={businessUnits}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
       <DeleteModal
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
