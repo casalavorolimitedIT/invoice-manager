@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: "Invoice Manager",
   description:
     "An invoice management application built with Next.js, Supabase, and Tailwind CSS. Create, manage, and track your invoices with ease.",
-    icons: {
+  icons: {
     icon: [
       {
         url: "/casalogo2.png",
@@ -28,7 +28,6 @@ export const metadata: Metadata = {
       },
     ],
   },
-
 };
 
 export default function RootLayout({

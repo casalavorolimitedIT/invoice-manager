@@ -84,6 +84,7 @@ interface BusinessUnitFormProps {
 
 export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
   const isEdit = Boolean(id);
+  const env = process.env.NODE_ENV;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | undefined>();
@@ -247,11 +248,15 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
             <div className="flex gap-2">
               <Input
                 id="public_guest_form_slug"
+                readOnly={isEdit && env === "production"} // Allow editing slug in non-production environments for testing purposes
+                disabled={isEdit && env === "production"}
+                className=""
                 placeholder="e.g. cv-lagos-frontdesk"
                 {...register("public_guest_form_slug")}
               />
               <Button
                 type="button"
+                disabled={isEdit && env === "production"}
                 variant="outline"
                 className="shrink-0"
                 onClick={handleGeneratePublicGuestFormSlug}
