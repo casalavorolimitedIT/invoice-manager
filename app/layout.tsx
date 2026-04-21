@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Invoice Manager",
   description:
-    "An invoice management application built with Next.js, Supabase, and Tailwind CSS. Create, manage, and track your invoices with ease.",
+    "An invoice management application for business units to create, send, and manage invoices with ease.",
   icons: {
     icon: [
       {
