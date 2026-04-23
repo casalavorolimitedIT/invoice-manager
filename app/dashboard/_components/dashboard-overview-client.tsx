@@ -55,7 +55,7 @@ function OverviewCard({
           {icon}
         </div>
       </div>
-      <div className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-zinc-950">{value}</div>
+      <div className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-zinc-950">{value}</div>
       {sub && <div className="mt-2 text-sm text-zinc-600">{sub}</div>}
     </div>
   );

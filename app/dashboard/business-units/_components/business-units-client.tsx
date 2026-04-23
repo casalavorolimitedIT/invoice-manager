@@ -16,6 +16,15 @@ import {
   GridTableIcon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 
 const CARD_PAGE_SIZE = 12;
@@ -52,7 +61,10 @@ export function BusinessUnitsClient({ units }: { units: BusinessUnit[] }) {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
-  const paginated = filtered.slice(safePage * pageSize, (safePage + 1) * pageSize);
+  const paginated = filtered.slice(
+    safePage * pageSize,
+    (safePage + 1) * pageSize,
+  );
 
   const counts = useMemo(
     () => ({
@@ -60,7 +72,7 @@ export function BusinessUnitsClient({ units }: { units: BusinessUnit[] }) {
       active: units.filter((u) => !u.is_archived).length,
       archived: units.filter((u) => u.is_archived).length,
     }),
-    [units]
+    [units],
   );
 
   function handleFilterChange(f: FilterTab) {
@@ -128,7 +140,11 @@ export function BusinessUnitsClient({ units }: { units: BusinessUnit[] }) {
               }`}
               title="Card view"
             >
-              <HugeiconsIcon icon={GridViewIcon} strokeWidth={2} className="size-4" />
+              <HugeiconsIcon
+                icon={GridViewIcon}
+                strokeWidth={2}
+                className="size-4"
+              />
             </button>
             <button
               onClick={() => setView("table")}
@@ -139,7 +155,11 @@ export function BusinessUnitsClient({ units }: { units: BusinessUnit[] }) {
               }`}
               title="Table view"
             >
-              <HugeiconsIcon icon={GridTableIcon} strokeWidth={2} className="size-4" />
+              <HugeiconsIcon
+                icon={GridTableIcon}
+                strokeWidth={2}
+                className="size-4"
+              />
             </button>
           </div>
         </div>
@@ -201,11 +221,11 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
         archived ? "opacity-60 hover:opacity-80" : "hover:shadow-md"
       }`}
     >
-       {!isOwner && (
-                <span className="text-[10px] absolute -top-1 z-30 font-medium border rounded px-1 py-0.5 text-sky-700 border-sky-200 bg-sky-50">
-                  Shared
-                </span>
-              )}
+      {!isOwner && (
+        <span className="text-[10px] absolute -top-1 z-30 font-medium border rounded px-1 py-0.5 text-sky-700 border-sky-200 bg-sky-50">
+          Shared
+        </span>
+      )}
       {/* Brand color accent */}
       <div className="h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
 
@@ -214,15 +234,17 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
           <div>
             <div className="font-semibold text-sm flex items-center gap-1.5">
               {bu.name}
-              
+
               {archived && (
                 <span className="text-[10px] font-medium border rounded px-1 py-0.5 text-muted-foreground border-muted-foreground/30">
                   Archived
                 </span>
               )}
             </div>
-           
-            <div className="text-xs text-muted-foreground font-mono mt-0.5">{bu.code}</div>
+
+            <div className="text-xs text-muted-foreground font-mono mt-0.5">
+              {bu.code}
+            </div>
           </div>
           <Badge variant="outline" className="text-xs shrink-0">
             {bu.category ?? "General"}
@@ -236,21 +258,34 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
         </div>
 
         <div className="flex items-center gap-1.5 text-xs">
-          <span className="bg-muted rounded px-1.5 py-0.5 font-mono">{bu.default_currency}</span>
+          <span className="bg-muted rounded px-1.5 py-0.5 font-mono">
+            {bu.default_currency}
+          </span>
           <span className="bg-muted rounded px-1.5 py-0.5">
             {bu.tax_label} {bu.default_tax_rate}%
           </span>
         </div>
 
-        <div className={`flex items-center gap-2 pt-1 ${isOwner ? "border-t" : ""}`}>
+        <div
+          className={`flex items-center gap-2 pt-1 ${isOwner ? "border-t" : ""}`}
+        >
           {isOwner ? (
             <Button
               size="sm"
               variant="ghost"
               className="h-7 gap-1 text-xs"
-              render={<a href={`/dashboard/business-units/${bu.id}/members`} title="Manage access" />}
+              render={
+                <a
+                  href={`/dashboard/business-units/${bu.id}/members`}
+                  title="Manage access"
+                />
+              }
             >
-              <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
+              <HugeiconsIcon
+                icon={UserGroupIcon}
+                strokeWidth={2}
+                className="size-3.5"
+              />
               Access
             </Button>
           ) : null}
@@ -261,11 +296,22 @@ function UnitCard({ bu }: { bu: BusinessUnit }) {
               className="h-7 gap-1 text-xs"
               render={<Link href={`/dashboard/business-units/${bu.id}/edit`} />}
             >
-              <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} className="size-3.5" />
+              <HugeiconsIcon
+                icon={Edit01Icon}
+                strokeWidth={2}
+                className="size-3.5"
+              />
               Edit
             </Button>
           )}
-          {isOwner ? <BusinessUnitActions id={bu.id} name={bu.name} isArchived={archived} /> : null}
+          {isOwner ? (
+            <BusinessUnitActions
+              id={bu.id}
+              name={bu.name}
+              isArchived={archived}
+              view="card"
+            />
+          ) : null}
         </div>
       </div>
     </div>
@@ -280,8 +326,12 @@ function TableView({ units }: { units: BusinessUnit[] }) {
       <table className="w-full min-w-200 text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground text-xs">Name</th>
-            <th className="px-4 py-3 text-left font-medium text-muted-foreground text-xs">Code</th>
+            <th className="px-4 py-3 text-left font-medium text-muted-foreground text-xs">
+              Name
+            </th>
+            <th className="px-4 py-3 text-left font-medium text-muted-foreground text-xs">
+              Code
+            </th>
             <th className="px-4 py-3 text-left font-medium text-muted-foreground text-xs hidden md:table-cell">
               Category
             </th>
@@ -315,13 +365,18 @@ function TableView({ units }: { units: BusinessUnit[] }) {
                   <span className="size-2 rounded-full shrink-0 bg-primary/40" />
                   <span className="font-medium">{bu.name}</span>
                   {bu.current_user_role !== "owner" ? (
-                    <Badge variant="outline" className="text-[10px] text-sky-700 border-sky-200 bg-sky-50">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] text-sky-700 border-sky-200 bg-sky-50"
+                    >
                       Shared
                     </Badge>
                   ) : null}
                 </div>
               </td>
-              <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{bu.code}</td>
+              <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                {bu.code}
+              </td>
               <td className="px-4 py-3 hidden md:table-cell">
                 <Badge variant="outline" className="text-xs">
                   {bu.category ?? "General"}
@@ -333,7 +388,9 @@ function TableView({ units }: { units: BusinessUnit[] }) {
               <td className="px-4 py-3 text-xs hidden lg:table-cell">
                 {bu.tax_label} {bu.default_tax_rate}%
               </td>
-              <td className="px-4 py-3 text-xs hidden xl:table-cell">{bu.payment_terms}</td>
+              <td className="px-4 py-3 text-xs hidden xl:table-cell">
+                {bu.payment_terms}
+              </td>
               <td className="px-4 py-3">
                 {bu.is_archived ? (
                   <Badge variant="secondary" className="text-xs">
@@ -350,31 +407,63 @@ function TableView({ units }: { units: BusinessUnit[] }) {
               </td>
               <td className="px-4 py-3 text-right">
                 <div className="flex items-center justify-end gap-2">
-                  {bu.current_user_role === "owner" ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 gap-1 text-xs"
-                      render={<a href={`/dashboard/business-units/${bu.id}/members`} title="Manage access" />}
-                    >
-                      <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className="size-3.5" />
-                      Access
-                    </Button>
-                  ) : null}
-                  {!bu.is_archived && bu.current_user_role === "owner" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 gap-1 text-xs"
-                      render={<Link href={`/dashboard/business-units/${bu.id}/edit`} />}
-                    >
-                      <HugeiconsIcon icon={Edit01Icon} strokeWidth={2} className="size-3.5" />
-                      Edit
-                    </Button>
-                  )}
-                  {bu.current_user_role === "owner" ? (
-                    <BusinessUnitActions id={bu.id} name={bu.name} isArchived={bu.is_archived} />
-                  ) : null}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger render={<Button variant="outline" />}>
+                      <span className="text-sm">Open</span>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuGroup>
+                        {bu.current_user_role === "owner" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-full text-left flex justify-start gap-1 text-xs"
+                            render={
+                              <a
+                                href={`/dashboard/business-units/${bu.id}/members`}
+                                title="Manage access"
+                              />
+                            }
+                          >
+                            <HugeiconsIcon
+                              icon={UserGroupIcon}
+                              strokeWidth={2}
+                              className="size-3.5"
+                            />
+                            Access
+                          </Button>
+                        ) : null}{" "}
+                        {!bu.is_archived &&
+                          bu.current_user_role === "owner" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-full text-left flex justify-start gap-1 text-xs"
+                              render={
+                                <Link
+                                  href={`/dashboard/business-units/${bu.id}/edit`}
+                                />
+                              }
+                            >
+                              <HugeiconsIcon
+                                icon={Edit01Icon}
+                                strokeWidth={2}
+                                className="size-3.5"
+                              />
+                              Edit
+                            </Button>
+                          )}
+                        {bu.current_user_role === "owner" ? (
+                          <BusinessUnitActions
+                            id={bu.id}
+                            view={"table"}
+                            name={bu.name}
+                            isArchived={bu.is_archived}
+                          />
+                        ) : null}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </td>
             </tr>
@@ -385,24 +474,35 @@ function TableView({ units }: { units: BusinessUnit[] }) {
   );
 }
 
-
 // ── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
       <div className="rounded-full bg-muted p-4">
-        <HugeiconsIcon icon={Building01Icon} strokeWidth={1.5} className="size-8 text-muted-foreground" />
+        <HugeiconsIcon
+          icon={Building01Icon}
+          strokeWidth={1.5}
+          className="size-8 text-muted-foreground"
+        />
       </div>
       <div>
         <h2 className="font-semibold">No business units yet</h2>
         <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-          Create your first business unit to start generating invoices. Each unit can have its own
-          branding, tax settings, and bank details.
+          Create your first business unit to start generating invoices. Each
+          unit can have its own branding, tax settings, and bank details.
         </p>
       </div>
-      <Button render={<Link href="/dashboard/business-units/new" className="gap-1.5" />}>
-        <HugeiconsIcon icon={PlusSignCircleIcon} strokeWidth={2} className="size-4" />
+      <Button
+        render={
+          <Link href="/dashboard/business-units/new" className="gap-1.5" />
+        }
+      >
+        <HugeiconsIcon
+          icon={PlusSignCircleIcon}
+          strokeWidth={2}
+          className="size-4"
+        />
         Create Business Unit
       </Button>
     </div>

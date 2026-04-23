@@ -16,12 +16,14 @@ interface BusinessUnitActionsProps {
   id: string;
   name: string;
   isArchived?: boolean;
+  view: "table" | "card";
 }
 
 export function BusinessUnitActions({
   id,
   name,
   isArchived = false,
+  view
 }: BusinessUnitActionsProps) {
   const env = process.env.NODE_ENV || "development";
   const router = useRouter();
@@ -86,12 +88,12 @@ export function BusinessUnitActions({
   }
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className={`flex space-x-2 ${view === "table" ? "flex-col items-start" : "flex-row items-center"}`}>
       {isArchived ? (
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+          className="h-7 w-full text-left flex justify-start gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
           onClick={handleUnarchive}
           disabled={isLoading}
         >
@@ -106,7 +108,7 @@ export function BusinessUnitActions({
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 gap-1 text-xs"
+          className={`h-7 ${view === "table" ? "w-full text-left flex justify-start gap-1 text-xs" : "w-auto text-center flex justify-center gap-1 text-xs"} cursor-pointer`}
           onClick={handleArchive}
           disabled={isLoading}
         >
@@ -123,7 +125,7 @@ export function BusinessUnitActions({
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
+            className="h-7 w-full text-left flex justify-start gap-1 text-xs text-destructive hover:text-destructive cursor-pointer"
             onClick={() => setDeleteOpen(true)}
             disabled={isLoading}
           >

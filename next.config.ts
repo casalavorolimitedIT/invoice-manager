@@ -1,3 +1,4 @@
+import { withDevToolbar } from 'next-dev-toolbar/plugin';
 import type { NextConfig } from "next";
 
 function getAllowedOrigins() {
@@ -47,4 +48,4 @@ const nextConfig: NextConfig = {
   },
 } as NextConfig;
 
-export default nextConfig;
+export default withDevToolbar()(nextConfig);

@@ -52,7 +52,7 @@ function Button({
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn('cursor-pointer',buttonVariants({ variant, size, className }))}
       nativeButton={nativeButton ?? (props.render === undefined)}
       {...props}
     />

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
+import { DevToolbar } from 'next-dev-toolbar';
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
@@ -45,7 +46,8 @@ export default function RootLayout({
           {children}
           <Toaster position="top-right" closeButton />
         </TooltipProvider>
-      </body>
+      {process.env.NODE_ENV === 'development' && <DevToolbar />}
+        </body>
     </html>
   );
 }
