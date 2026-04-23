@@ -125,7 +125,7 @@ export function BusinessUnitScopeSwitcher({
                     type="button"
                     disabled={isPending || isArchived}
                     onClick={() => handleSelectBusinessUnit(businessUnit.id)}
-                    className={`rounded-xl border p-4 text-left transition-colors ${
+                    className={`rounded-xl cursor-pointer border p-4 text-left transition-colors ${
                       isActive
                         ? "border-primary bg-primary/5"
                         : "border-border bg-card hover:bg-muted/40"
