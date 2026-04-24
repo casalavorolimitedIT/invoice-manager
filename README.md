@@ -2,7 +2,7 @@
 
 Production-ready starter with:
 
-- Next.js App Router
+- Next.js App Router..
 - Supabase SSR auth (middleware + server actions)
 - Login / register / dashboard flow
 - Reusable UI primitives (shadcn/base-ui)
