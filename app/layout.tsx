@@ -3,8 +3,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import { DevToolbarWrapper } from './DevToolbarWrapper';
 
-import { DevToolbar } from 'next-dev-toolbar';
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
@@ -46,7 +46,7 @@ export default function RootLayout({
           {children}
           <Toaster position="top-right" closeButton />
         </TooltipProvider>
-      {process.env.NODE_ENV === 'development' && <DevToolbar />}
+        <DevToolbarWrapper />
         </body>
     </html>
   );

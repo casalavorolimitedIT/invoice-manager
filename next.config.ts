@@ -1,4 +1,7 @@
-import { withDevToolbar } from 'next-dev-toolbar/plugin';
+// next-dev-toolbar — optional dev dep (safely skipped if not installed)
+/* eslint-disable @typescript-eslint/no-require-imports */
+let _devWrap: (c: any) => any = (c: any) => c;
+try { _devWrap = require('next-dev-toolbar/plugin').withDevToolbar(); } catch {}
 import type { NextConfig } from "next";
 
 function getAllowedOrigins() {
@@ -48,4 +51,4 @@ const nextConfig: NextConfig = {
   },
 } as NextConfig;
 
-export default withDevToolbar()(nextConfig);
+export default _devWrap(nextConfig);
