@@ -53,7 +53,8 @@ interface ReportsPaginatedSectionsProps {
 export function ReportsBusinessUnitsSection({
   businessUnits,
   currency,
-}: ReportsPaginatedSectionsProps) {
+  isOpen = false,
+}: ReportsPaginatedSectionsProps & { isOpen?: boolean }) {
   const [businessUnitPage, setBusinessUnitPage] = useState(0);
 
   const businessUnitTotalPages = Math.max(1, Math.ceil(businessUnits.length / BUSINESS_UNIT_PAGE_SIZE));
@@ -105,7 +106,7 @@ export function ReportsBusinessUnitsSection({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold tabular-nums text-zinc-950">
+                    <div className={`text-sm font-bold tabular-nums text-zinc-950 ${isOpen ? "blur-lg" : ""}`}>
                       {formatCurrency(businessUnit.total, currency)}
                     </div>
                   </div>
@@ -143,7 +144,7 @@ interface ReportsRecentInvoicesSectionProps {
   recentInvoices: RecentInvoiceRow[];
 }
 
-export function ReportsRecentInvoicesSection({ recentInvoices }: ReportsRecentInvoicesSectionProps) {
+export function ReportsRecentInvoicesSection({ recentInvoices, isOpen = false }: ReportsRecentInvoicesSectionProps & { isOpen?: boolean }) {
   const [invoicePage, setInvoicePage] = useState(0);
 
   const invoiceTotalPages = Math.max(1, Math.ceil(recentInvoices.length / INVOICE_PAGE_SIZE));
@@ -183,7 +184,7 @@ export function ReportsRecentInvoicesSection({ recentInvoices }: ReportsRecentIn
                 <td className="px-4 py-3">
                   <Link
                     href={`/dashboard/invoices/${invoice.id}`}
-                    className="font-mono text-xs font-semibold text-zinc-900 underline-offset-4 transition-colors hover:text-primary hover:underline"
+                    className="font-mono text-xs font-semibold text-zinc-900 underline-offset-4 transition-colors hover:text-primary underline"
                   >
                     {invoice.invoice_number}
                   </Link>
@@ -201,7 +202,7 @@ export function ReportsRecentInvoicesSection({ recentInvoices }: ReportsRecentIn
                     {STATUS_LABELS[invoice.status]}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums text-zinc-950">
+                <td className={`px-4 py-3 text-right font-semibold tabular-nums text-zinc-950 ${isOpen ? "blur-lg" : ""}`}>
                   {formatCurrency(invoice.total, invoice.currency)}
                 </td>
               </tr>

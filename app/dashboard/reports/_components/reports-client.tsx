@@ -63,10 +63,14 @@ function MetricCard({
       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
         {label}
       </p>
-      <p className={`mt-3 text-2xl font-semibold tracking-[-0.04em] text-zinc-950 ${isOpen ? "blur-lg" : ""}`}>
+      <p
+        className={`mt-3 text-2xl font-semibold tracking-[-0.04em] text-zinc-950 ${isOpen ? "blur-lg" : ""}`}
+      >
         {value}
       </p>
-      <p className={`mt-2 text-sm text-zinc-600 ${isOpen ? "blur-lg" : ""}`}>{detail}</p>
+      <p className={`mt-2 text-sm text-zinc-600 ${isOpen ? "blur-lg" : ""}`}>
+        {detail}
+      </p>
     </div>
   );
 }
@@ -77,12 +81,14 @@ function StatRow({
   count,
   accent,
   share,
+  isOpen = false,
 }: {
   label: string;
   value: string;
   count: number;
   accent: string;
   share: number;
+  isOpen?: boolean;
 }) {
   return (
     <div className="rounded-[22px] border border-white/70 bg-white/72 p-4 shadow-[0_18px_40px_rgba(24,18,9,0.05)]">
@@ -97,10 +103,14 @@ function StatRow({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-bold tabular-nums text-zinc-950">
+              <div
+                className={`text-sm font-bold tabular-nums text-zinc-950 ${isOpen ? "blur-lg" : ""}`}
+              >
                 {value}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">
+              <div
+                className={`mt-1 text-xs text-muted-foreground ${isOpen ? "blur-lg" : ""}`}
+              >
                 {formatPercent(share)}
               </div>
             </div>
@@ -141,10 +151,10 @@ export function ReportsClient({
   scopeLabel,
 }: ReportsClientProps) {
   const [filters, setFilters] = useState<InvoiceFilterState>(DEFAULT_FILTERS);
-    const { value: isOpen, toggle: toggleIsOpen } = useToggleWithStorage(
-      "my-toggle-key",
-      false,
-    );
+  const { value: isOpen, toggle: toggleIsOpen } = useToggleWithStorage(
+    "my-toggle-key",
+    false,
+  );
   const filteredInvoices = useMemo(
     () => filterInvoices(invoices, filters),
     [invoices, filters],
@@ -248,7 +258,9 @@ export function ReportsClient({
                 <p className="text-sm font-medium text-zinc-600">
                   {scopeLabel}
                 </p>
-                <h2 className={` font-semibold tracking-[-0.05em] text-zinc-950 ${stats.total > 100000 ? "text-4xl" : "md:text-5xl"} ${isOpen ? "blur-lg" : ""}`}>
+                <h2
+                  className={` font-semibold tracking-[-0.05em] text-zinc-950 ${stats.total > 100000 ? "text-4xl" : "md:text-5xl"} ${isOpen ? "blur-lg" : ""}`}
+                >
                   {formatCurrency(stats.total, currency)}
                 </h2>
                 <p className="max-w-xl text-sm leading-6 text-zinc-600 md:text-base">
@@ -340,7 +352,7 @@ export function ReportsClient({
             </div>
             <div className="grid gap-3">
               {statusRows.map((row) => (
-                <StatRow key={row.label} {...row} />
+                <StatRow key={row.label} {...row} isOpen={isOpen} />
               ))}
             </div>
           </section>
@@ -349,11 +361,13 @@ export function ReportsClient({
             <ReportsBusinessUnitsSection
               businessUnits={buList}
               currency={currency}
+              isOpen={isOpen}
             />
           </div>
         </div>
 
         <ReportsRecentInvoicesSection
+          isOpen={isOpen}
           recentInvoices={filteredInvoices.map((invoice) => ({
             id: invoice.id,
             invoice_number: invoice.invoice_number,
