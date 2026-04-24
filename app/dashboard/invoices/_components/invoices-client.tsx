@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { InvoiceActivityFilters } from "@/app/dashboard/_components/invoice-activity-filters";
 import { filterInvoices, type InvoiceFilterState } from "@/lib/invoice-reporting";
+import { useToggleWithStorage } from "@/hooks/useToggleWithStorage";
 
 const PAGE_SIZE = 15;
 
@@ -37,7 +38,10 @@ export function InvoicesClient({ invoices, businessUnits, initialStatus = "all" 
     dateFrom: "",
     dateTo: "",
   });
-
+ const { value: isOpen } = useToggleWithStorage(
+    "my-toggle-key",
+    false,
+  );
   const businessUnitMap = useMemo(
     () => Object.fromEntries(businessUnits.map((businessUnit) => [businessUnit.id, businessUnit])),
     [businessUnits]
@@ -105,7 +109,7 @@ export function InvoicesClient({ invoices, businessUnits, initialStatus = "all" 
                     <td className="px-4 py-3">
                       <Link
                         href={`/dashboard/invoices/${invoice.id}`}
-                        className="font-mono text-xs font-semibold underline"
+                        className="font-mono text-xs font-semibold underline hover:text-primary"
                       >
                         {invoice.invoice_number}
                       </Link>
@@ -140,7 +144,7 @@ export function InvoicesClient({ invoices, businessUnits, initialStatus = "all" 
                         {STATUS_LABELS[invoice.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                    <td className={cn("px-4 py-3 text-right font-semibold tabular-nums", isOpen ? "blur-lg" : "")}>
                       {formatCurrency(invoice.total, invoice.currency)}
                     </td>
                   </tr>

@@ -28,8 +28,11 @@ function formatDateLabel(value: string) {
 
 export function RecentInvoiceActivityTable({
   invoices,
+  isOpen = false,
 }: {
   invoices: RecentInvoiceRow[];
+  isOpen?: boolean;
+
 }) {
   const [page, setPage] = useState(0);
 
@@ -67,7 +70,7 @@ export function RecentInvoiceActivityTable({
                 <td className="px-4 py-3">
                   <Link
                     href={`/dashboard/invoices/${invoice.id}`}
-                    className="font-mono text-xs font-semibold text-zinc-900 underline-offset-4 transition-colors hover:text-primary hover:underline"
+                    className="font-mono text-xs font-semibold text-zinc-900 underline-offset-4 transition-colors hover:text-primary underline"
                   >
                     {invoice.invoice_number}
                   </Link>
@@ -88,7 +91,7 @@ export function RecentInvoiceActivityTable({
                 <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
                   {formatDateLabel(invoice.created_at)}
                 </td>
-                <td className="px-4 py-3 text-right font-semibold tabular-nums text-zinc-950">
+                <td className={cn("px-4 py-3 text-right font-semibold tabular-nums text-zinc-950", isOpen && "blur-lg")}>
                   {formatCurrency(invoice.total, invoice.currency)}
                 </td>
               </tr>

@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { formatCurrency, type BusinessUnit, type Invoice } from "@/lib/types/invoice";
+import {
+  formatCurrency,
+  type BusinessUnit,
+  type Invoice,
+} from "@/lib/types/invoice";
 import { cn } from "@/lib/utils";
 import { ReportsInfoButton } from "./reports-info-button";
 import {
@@ -16,6 +20,9 @@ import {
   summarizeInvoices,
   type InvoiceFilterState,
 } from "@/lib/invoice-reporting";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { EyeIcon, EyeOff } from "@hugeicons/core-free-icons";
+import { useToggleWithStorage } from "@/hooks/useToggleWithStorage";
 
 function formatPercent(value: number) {
   return `${value}%`;
@@ -35,11 +42,13 @@ function MetricCard({
   value,
   detail,
   tone = "default",
+  isOpen = false,
 }: {
   label: string;
   value: string;
   detail: string;
   tone?: "default" | "success" | "warning" | "danger";
+  isOpen?: boolean;
 }) {
   return (
     <div
@@ -54,10 +63,10 @@ function MetricCard({
       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-zinc-950">
+      <p className={`mt-3 text-2xl font-semibold tracking-[-0.04em] text-zinc-950 ${isOpen ? "blur-lg" : ""}`}>
         {value}
       </p>
-      <p className="mt-2 text-sm text-zinc-600">{detail}</p>
+      <p className={`mt-2 text-sm text-zinc-600 ${isOpen ? "blur-lg" : ""}`}>{detail}</p>
     </div>
   );
 }
@@ -88,8 +97,12 @@ function StatRow({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-bold tabular-nums text-zinc-950">{value}</div>
-              <div className="mt-1 text-xs text-muted-foreground">{formatPercent(share)}</div>
+              <div className="text-sm font-bold tabular-nums text-zinc-950">
+                {value}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {formatPercent(share)}
+              </div>
             </div>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-100">
@@ -121,19 +134,38 @@ const DEFAULT_FILTERS: InvoiceFilterState = {
   dateTo: "",
 };
 
-export function ReportsClient({ businessUnits, invoices, currency, scopeLabel }: ReportsClientProps) {
+export function ReportsClient({
+  businessUnits,
+  invoices,
+  currency,
+  scopeLabel,
+}: ReportsClientProps) {
   const [filters, setFilters] = useState<InvoiceFilterState>(DEFAULT_FILTERS);
-  const filteredInvoices = useMemo(() => filterInvoices(invoices, filters), [invoices, filters]);
-  const stats = useMemo(() => summarizeInvoices(filteredInvoices), [filteredInvoices]);
+    const { value: isOpen, toggle: toggleIsOpen } = useToggleWithStorage(
+      "my-toggle-key",
+      false,
+    );
+  const filteredInvoices = useMemo(
+    () => filterInvoices(invoices, filters),
+    [invoices, filters],
+  );
+  const stats = useMemo(
+    () => summarizeInvoices(filteredInvoices),
+    [filteredInvoices],
+  );
   const buList = useMemo(
     () => buildBusinessUnitRevenue(filteredInvoices, businessUnits),
-    [filteredInvoices, businessUnits]
+    [filteredInvoices, businessUnits],
   );
 
-  const collectionRate = stats.total > 0 ? Math.round((stats.paid / stats.total) * 100) : 0;
-  const outstandingRate = stats.total > 0 ? Math.round((stats.outstanding / stats.total) * 100) : 0;
-  const overdueRate = stats.total > 0 ? Math.round((stats.overdue / stats.total) * 100) : 0;
-  const draftRate = stats.total > 0 ? Math.round((stats.draft / stats.total) * 100) : 0;
+  const collectionRate =
+    stats.total > 0 ? Math.round((stats.paid / stats.total) * 100) : 0;
+  const outstandingRate =
+    stats.total > 0 ? Math.round((stats.outstanding / stats.total) * 100) : 0;
+  const overdueRate =
+    stats.total > 0 ? Math.round((stats.overdue / stats.total) * 100) : 0;
+  const draftRate =
+    stats.total > 0 ? Math.round((stats.draft / stats.total) * 100) : 0;
   const averageInvoiceValue = stats.count > 0 ? stats.total / stats.count : 0;
 
   const statusRows = [
@@ -178,10 +210,25 @@ export function ReportsClient({ businessUnits, invoices, currency, scopeLabel }:
           dateFrom={filters.dateFrom}
           dateTo={filters.dateTo}
           resultLabel={`${filteredInvoices.length} matching invoices`}
-          onQueryChange={(value) => setFilters((current) => ({ ...current, query: value }))}
-          onStatusChange={(value) => setFilters((current) => ({ ...current, status: value }))}
-          onDateFromChange={(value) => setFilters((current) => ({ ...current, dateFrom: value, dateTo: current.dateTo && value && current.dateTo < value ? value : current.dateTo }))}
-          onDateToChange={(value) => setFilters((current) => ({ ...current, dateTo: value }))}
+          onQueryChange={(value) =>
+            setFilters((current) => ({ ...current, query: value }))
+          }
+          onStatusChange={(value) =>
+            setFilters((current) => ({ ...current, status: value }))
+          }
+          onDateFromChange={(value) =>
+            setFilters((current) => ({
+              ...current,
+              dateFrom: value,
+              dateTo:
+                current.dateTo && value && current.dateTo < value
+                  ? value
+                  : current.dateTo,
+            }))
+          }
+          onDateToChange={(value) =>
+            setFilters((current) => ({ ...current, dateTo: value }))
+          }
           onReset={() => setFilters(DEFAULT_FILTERS)}
         />
 
@@ -198,28 +245,50 @@ export function ReportsClient({ businessUnits, invoices, currency, scopeLabel }:
                 Revenue overview
               </div>
               <div className="space-y-3">
-                <p className="text-sm font-medium text-zinc-600">{scopeLabel}</p>
-                <h2 className="text-4xl font-semibold tracking-[-0.05em] text-zinc-950 md:text-5xl">
+                <p className="text-sm font-medium text-zinc-600">
+                  {scopeLabel}
+                </p>
+                <h2 className={` font-semibold tracking-[-0.05em] text-zinc-950 ${stats.total > 100000 ? "text-4xl" : "md:text-5xl"} ${isOpen ? "blur-lg" : ""}`}>
                   {formatCurrency(stats.total, currency)}
                 </h2>
                 <p className="max-w-xl text-sm leading-6 text-zinc-600 md:text-base">
-                  {stats.count} invoices tracked with {collectionRate}% already collected.
+                  {stats.count} invoices tracked with {collectionRate}% already
+                  collected.
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <MetricCard
-                label="Collected"
-                value={formatPercent(collectionRate)}
-                detail={formatCurrency(stats.paid, currency)}
-                tone="success"
-              />
-              <MetricCard
-                label="Average invoice"
-                value={formatCurrency(averageInvoiceValue, currency)}
-                detail={`${stats.count} total invoices`}
-              />
+            <div className="flex flex-col lg:items-end">
+              <button
+                type="button"
+                onClick={toggleIsOpen}
+                title="Toggle Amount"
+                aria-label={
+                  isOpen ? "Show dashboard total" : "Hide dashboard total"
+                }
+                className="relative bottom-3.5 inline-flex cursor-pointer items-center gap-2 rounded-full border border-orange-200/80 bg-white/75 p-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-orange-700 shadow-sm"
+              >
+                <HugeiconsIcon
+                  icon={!isOpen ? EyeIcon : EyeOff}
+                  strokeWidth={2.5}
+                  className="size-3 text-orange-600"
+                />
+              </button>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <MetricCard
+                  label="Collected"
+                  isOpen={isOpen}
+                  value={formatPercent(collectionRate)}
+                  detail={formatCurrency(stats.paid, currency)}
+                  tone="success"
+                />
+                <MetricCard
+                  label="Average invoice"
+                  isOpen={isOpen}
+                  value={formatCurrency(averageInvoiceValue, currency)}
+                  detail={`${stats.count} total invoices`}
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -227,24 +296,28 @@ export function ReportsClient({ businessUnits, invoices, currency, scopeLabel }:
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label="Paid revenue"
+            isOpen={isOpen}
             value={formatCurrency(stats.paid, currency)}
             detail={`${stats.paidCount} paid invoices`}
             tone="success"
           />
           <MetricCard
             label="Outstanding"
+            isOpen={isOpen}
             value={formatCurrency(stats.outstanding, currency)}
             detail={`${stats.outstandingCount} sent invoices`}
             tone="warning"
           />
           <MetricCard
             label="Overdue"
+            isOpen={isOpen}
             value={formatCurrency(stats.overdue, currency)}
             detail={`${stats.overdueCount} overdue invoices`}
             tone="danger"
           />
           <MetricCard
             label="Draft value"
+            isOpen={isOpen}
             value={formatCurrency(stats.draft, currency)}
             detail={`${stats.draftCount} draft invoices`}
           />
@@ -273,7 +346,10 @@ export function ReportsClient({ businessUnits, invoices, currency, scopeLabel }:
           </section>
 
           <div className="min-w-0">
-            <ReportsBusinessUnitsSection businessUnits={buList} currency={currency} />
+            <ReportsBusinessUnitsSection
+              businessUnits={buList}
+              currency={currency}
+            />
           </div>
         </div>
 
@@ -289,7 +365,9 @@ export function ReportsClient({ businessUnits, invoices, currency, scopeLabel }:
         />
 
         {filteredInvoices.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No report data matches the current filters.</p>
+          <p className="text-sm text-muted-foreground">
+            No report data matches the current filters.
+          </p>
         ) : null}
       </div>
     </>
