@@ -1,6 +1,7 @@
 "use server";
 
 import { createActionClient } from "@/lib/supabase/action";
+import { getOwnedBusinessUnit } from "@/lib/supabase/business-units";
 import { invoiceSchema, type InvoiceInput, type InvoiceStatus } from "@/lib/types/invoice";
 import { redirect } from "next/navigation";
 
@@ -26,13 +27,9 @@ export async function createInvoice(
   const input = result.data;
 
   // Fetch business unit for snapshot + authoritative tax rate
-  const { data: bu, error: buError } = await supabase
-    .from("business_units")
-    .select("*")
-    .eq("id", input.business_unit_id)
-    .single();
+  const bu = await getOwnedBusinessUnit(input.business_unit_id);
 
-  if (buError || !bu) return { error: "Business unit not found" };
+  if (!bu) return { error: "Business unit not found" };
 
   // Server-side authoritative totals
   const subtotal = input.items.reduce(
