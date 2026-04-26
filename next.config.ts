@@ -4,6 +4,7 @@
 let _devWrap: (c: any) => any = (c: any) => c;
 try { _devWrap = require('next-dev-toolbar/plugin').withDevToolbar(); } catch {}
 
+
 import type { NextConfig } from "next";
 
 function getAllowedOrigins() {
