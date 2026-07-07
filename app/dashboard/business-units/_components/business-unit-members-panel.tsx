@@ -126,9 +126,9 @@ export function BusinessUnitMembersPanel({
       }
 
       appToast.success("Ownership transferred", {
-        description: `${member.full_name ?? member.email ?? "This user"} is now the owner of ${businessUnitName}.`,
+        description: `${member.full_name ?? member.email ?? "This user"} is now the owner of ${businessUnitName}. You are now a viewer.`,
       });
-      window.location.reload();
+      window.location.href = "/dashboard/business-units";
     });
   }
 
