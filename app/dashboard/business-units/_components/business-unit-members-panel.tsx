@@ -37,12 +37,14 @@ const MEMBERS_PAGE_SIZE = 10;
 interface BusinessUnitMembersPanelProps {
   businessUnitId: string;
   businessUnitName: string;
+  primaryOwnerUserId: string;
   members: BusinessUnitMember[];
 }
 
 export function BusinessUnitMembersPanel({
   businessUnitId,
   businessUnitName,
+  primaryOwnerUserId,
   members,
 }: BusinessUnitMembersPanelProps) {
   const [email, setEmail] = useState("");
@@ -51,6 +53,7 @@ export function BusinessUnitMembersPanel({
   const [page, setPage] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [transferTarget, setTransferTarget] = useState<BusinessUnitMember | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<BusinessUnitMember | null>(null);
 
   const filteredMembers = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -247,6 +250,7 @@ export function BusinessUnitMembersPanel({
                 {paginatedMembers.map((member) => {
                   const displayName = member.full_name?.trim() || member.email || member.user_id;
                   const isOwner = member.role === "owner";
+                  const isPrimaryOwner = member.user_id === primaryOwnerUserId;
 
                   return (
                     <TableRow key={member.user_id}>
@@ -269,26 +273,28 @@ export function BusinessUnitMembersPanel({
                         {new Date(member.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        {!isOwner ? (
+                        {!isPrimaryOwner ? (
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="gap-1.5 text-zinc-700"
-                              disabled={isPending}
-                              onClick={() => setTransferTarget(member)}
-                            >
-                              <HugeiconsIcon icon={Shield01Icon} strokeWidth={2} className="size-3.5" />
-                              Make owner
-                            </Button>
+                            {!isOwner ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1.5 text-zinc-700"
+                                disabled={isPending}
+                                onClick={() => setTransferTarget(member)}
+                              >
+                                <HugeiconsIcon icon={Shield01Icon} strokeWidth={2} className="size-3.5" />
+                                Make owner
+                              </Button>
+                            ) : null}
                             <Button
                               type="button"
                               size="sm"
                               variant="ghost"
                               className="gap-1.5 text-destructive hover:text-destructive"
                               disabled={isPending}
-                              onClick={() => handleRemove(member)}
+                              onClick={() => (isOwner ? setRemoveTarget(member) : handleRemove(member))}
                             >
                               <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-3.5" />
                               Remove
@@ -347,6 +353,37 @@ export function BusinessUnitMembersPanel({
                 }}
               >
                 Transfer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={removeTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setRemoveTarget(null);
+          }}
+        >
+          <AlertDialogContent size="sm">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove owner access?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {removeTarget
+                  ? `${removeTarget.full_name ?? removeTarget.email ?? "This user"} currently has owner access to ${businessUnitName}. Removing them revokes all access, including admin rights.`
+                  : null}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (removeTarget) {
+                    handleRemove(removeTarget);
+                  }
+                  setRemoveTarget(null);
+                }}
+              >
+                Remove
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

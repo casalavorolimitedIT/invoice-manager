@@ -163,6 +163,13 @@ export async function DELETE(
     );
   }
 
+  if (result.data.memberUserId === businessUnit.user_id) {
+    return NextResponse.json(
+      { error: "The primary owner cannot be removed. Transfer ownership first." },
+      { status: 400 }
+    );
+  }
+
   const { error } = await supabase
     .from("business_unit_members")
     .delete()

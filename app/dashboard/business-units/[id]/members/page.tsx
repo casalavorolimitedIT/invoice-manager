@@ -39,6 +39,7 @@ export default async function BusinessUnitMembersPage({ params }: Props) {
           <BusinessUnitMembersPanel
             businessUnitId={businessUnit.id}
             businessUnitName={businessUnit.name}
+            primaryOwnerUserId={businessUnit.user_id}
             members={members}
           />
         </div>
