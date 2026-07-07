@@ -62,9 +62,11 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_caller UUID := auth.uid();
 BEGIN
-  IF NOT public.is_business_unit_owner(p_business_unit_id) THEN
-    RAISE EXCEPTION 'Only the current owner can transfer ownership';
+  IF NOT public.is_business_unit_owner(p_business_unit_id, v_caller) THEN
+    RAISE EXCEPTION 'Only a current owner can transfer ownership';
   END IF;
 
   IF NOT EXISTS (
@@ -74,14 +76,27 @@ BEGIN
     RAISE EXCEPTION 'Target user is not a member of this business unit';
   END IF;
 
+  -- Reassign the primary owner slot only if the caller currently holds it.
+  -- A promoted (non-creator) owner transferring never touches this column,
+  -- so it can't strip the original creator's access as a side effect.
   UPDATE public.business_units
     SET user_id = p_new_owner_id
-    WHERE id = p_business_unit_id;
+    WHERE id = p_business_unit_id
+      AND user_id = v_caller;
 
+  -- The new owner always gets the 'owner' role in the members table.
   UPDATE public.business_unit_members
-    SET role = CASE WHEN user_id = p_new_owner_id THEN 'owner' ELSE 'viewer' END
+    SET role = 'owner'
     WHERE business_unit_id = p_business_unit_id
-      AND (role = 'owner' OR user_id = p_new_owner_id);
+      AND user_id = p_new_owner_id;
+
+  -- The caller gives up their own owner role, if they held one. Any other
+  -- co-owner's role is left untouched.
+  UPDATE public.business_unit_members
+    SET role = 'viewer'
+    WHERE business_unit_id = p_business_unit_id
+      AND user_id = v_caller
+      AND role = 'owner';
 END;
 $$;
 
@@ -89,10 +104,11 @@ REVOKE ALL ON FUNCTION public.transfer_business_unit_ownership(UUID, UUID) FROM 
 GRANT EXECUTE ON FUNCTION public.transfer_business_unit_ownership(UUID, UUID) TO authenticated;
 ```
 
-Runs as a single function call, so the `business_units` update and the two
-`business_unit_members` role flips are atomic — no partial-failure window.
-`is_business_unit_owner` re-checks `auth.uid()` at call time, so this can only
-ever be invoked by whoever is currently the real owner.
+Runs as a single function call, so the reassignment and both role flips are
+atomic — no partial-failure window. `is_business_unit_owner` re-checks the
+caller at call time, so this can only ever be invoked by a current owner —
+and it only ever changes the caller's own row plus the target's row, never a
+third co-owner's.
 
 ### `app/dashboard/business-units/[id]/members/api/route.ts`
 
@@ -112,10 +128,11 @@ ever be invoked by whoever is currently the real owner.
 ## Edge cases
 
 - Transfer-to-self: impossible, "Make owner" only renders on non-owner rows.
-- Two rapid/concurrent transfer attempts: the RPC re-checks `is_business_unit_owner` at call time, so a second call from the now-former-owner fails with "Only the current owner can transfer ownership."
+- Two rapid/concurrent transfer attempts: the RPC re-checks `is_business_unit_owner` at call time, so a second call from the now-former-owner fails with "Only a current owner can transfer ownership."
+- Multiple simultaneous owners (the schema already allows a creator plus one or more promoted `role='owner'` members): a co-owner transferring to a third party only ever changes their own row and the target's row. It never touches `business_units.user_id` unless the caller is the one currently holding it, so a promoted co-owner can't strip the original creator's (or any other co-owner's) access as a side effect.
 - Removing members: unchanged — still blocked for the owner row.
 
 ## Testing plan
 
-- SQL-level check (Supabase SQL editor or a migration test): RPC rejects a non-owner caller and rejects a target that isn't a member.
+- SQL-level check (Supabase SQL editor or a migration test): RPC rejects a non-owner caller, rejects a target that isn't a member, and — with two simultaneous owners — confirms a non-creator owner transferring to a third party leaves the creator's and the other co-owner's rows untouched.
 - Manual walkthrough: create a business unit, invite a second user as viewer, transfer ownership, confirm the old owner now shows as "viewer" everywhere (nav/business-unit switcher, clients/invoices create buttons hidden) and the new owner has full manage access immediately.
