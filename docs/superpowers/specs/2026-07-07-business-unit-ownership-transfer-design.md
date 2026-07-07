@@ -126,7 +126,7 @@ third co-owner's.
 
 - Role column: remove the per-row `Select` (Viewer/Owner) for non-owner rows — a non-owner can only ever be "viewer," so the dropdown never did anything the "Make owner" action doesn't already do. Replace with a plain "Viewer" label, mirroring how the owner row already just shows a badge.
 - "Make owner" action: opens a confirmation dialog before firing the request — *"Transfer ownership to {name}? You'll become a viewer and lose admin access to this business unit."* Only calls the PATCH on confirm.
-- On success: toast "Ownership transferred", reload — the acting user becomes a viewer everywhere on reload since `current_user_role` / `current_user_can_manage` are derived fresh from the DB.
+- On success: toast "Ownership transferred", then navigate to `/dashboard/business-units` — not a reload of the current page. The Members page is owner-only (`getOwnedBusinessUnit` returns `null` for non-owners, triggering `notFound()`), so reloading in place would leave the now-former-owner on a page they just lost access to (a bare 404). The business units list page has no such gate, so it correctly shows the unit with the caller's fresh `current_user_role: "viewer"`.
 - Invite form: remove the role `Select`; the form becomes a single email input with copy updated to reflect "invite as viewer."
 
 ## Edge cases
