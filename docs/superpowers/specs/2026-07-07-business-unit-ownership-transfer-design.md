@@ -76,6 +76,10 @@ BEGIN
     RAISE EXCEPTION 'Target user is not a member of this business unit';
   END IF;
 
+  IF p_new_owner_id = v_caller THEN
+    RAISE EXCEPTION 'Cannot transfer ownership to yourself';
+  END IF;
+
   -- Reassign the primary owner slot only if the caller currently holds it.
   -- A promoted (non-creator) owner transferring never touches this column,
   -- so it can't strip the original creator's access as a side effect.
@@ -127,7 +131,7 @@ third co-owner's.
 
 ## Edge cases
 
-- Transfer-to-self: impossible, "Make owner" only renders on non-owner rows.
+- Transfer-to-self: impossible, "Make owner" only renders on non-owner rows — and the RPC itself now rejects `p_new_owner_id = v_caller` with "Cannot transfer ownership to yourself," so this holds even for a direct RPC call that bypasses the UI/API.
 - Two rapid/concurrent transfer attempts: the RPC re-checks `is_business_unit_owner` at call time, so a second call from the now-former-owner fails with "Only a current owner can transfer ownership."
 - Multiple simultaneous owners (the schema already allows a creator plus one or more promoted `role='owner'` members): a co-owner transferring to a third party only ever changes their own row and the target's row. It never touches `business_units.user_id` unless the caller is the one currently holding it, so a promoted co-owner can't strip the original creator's (or any other co-owner's) access as a side effect.
 - Removing members: unchanged — still blocked for the owner row.

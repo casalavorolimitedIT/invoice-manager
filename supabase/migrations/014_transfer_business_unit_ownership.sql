@@ -27,6 +27,10 @@ BEGIN
     RAISE EXCEPTION 'Target user is not a member of this business unit';
   END IF;
 
+  IF p_new_owner_id = v_caller THEN
+    RAISE EXCEPTION 'Cannot transfer ownership to yourself';
+  END IF;
+
   -- Reassign the primary owner slot only if the caller currently holds it.
   -- A promoted (non-creator) owner transferring never touches this column,
   -- so it can't strip the original creator's access as a side effect.
