@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createActionClient } from "@/lib/supabase/action";
-import {
-  BUSINESS_UNIT_MEMBER_ROLES,
-  type BusinessUnitMemberRole,
-} from "@/lib/types/invoice";
+import { BUSINESS_UNIT_MEMBER_ROLES } from "@/lib/types/invoice";
 
 const inviteBusinessUnitMemberSchema = z.object({
   email: z.string().email("Enter a valid email address"),
-  role: z.enum(BUSINESS_UNIT_MEMBER_ROLES).default("viewer"),
 });
 
 const removeBusinessUnitMemberSchema = z.object({
@@ -73,7 +69,6 @@ export async function POST(
   const json = await request.json().catch(() => null);
   const result = inviteBusinessUnitMemberSchema.safeParse({
     email: typeof json?.email === "string" ? json.email.trim().toLowerCase() : json?.email,
-    role: json?.role as BusinessUnitMemberRole | undefined,
   });
 
   if (!result.success) {
@@ -113,7 +108,7 @@ export async function POST(
   const { error } = await supabase.from("business_unit_members").insert({
     business_unit_id: id,
     user_id: profile.id,
-    role: result.data.role,
+    role: "viewer",
     invited_by: user.id,
   });
 
