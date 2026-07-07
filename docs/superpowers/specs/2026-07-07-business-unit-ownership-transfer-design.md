@@ -9,28 +9,41 @@ The business unit must always end up with exactly one real owner.
 
 ## Current state (for context)
 
-- `business_units.user_id` (NOT NULL) is the original creator and is the only
-  column actually checked by `is_business_unit_owner` / `can_manage_business_unit`,
-  which gate all clients/invoices/invoice_sequences RLS policies.
-- `business_unit_members.role` (`'owner' | 'viewer'`) is a separate column used
-  today by the members-page UI and by `getOwnedBusinessUnit`'s app-level check
-  (`lib/supabase/business-units.ts`). Promoting a member's `role` to `'owner'`
-  today does **not** grant them real RLS-level manage rights (a pre-existing
-  gap) — it only changes what they see on the Members page.
+- `business_units.user_id` (NOT NULL) is the original creator.
+- `business_unit_members.role` (`'owner' | 'viewer'`) is a separate column.
+  As of migration `005_shared_business_unit_owners.sql`, `is_business_unit_owner`
+  (and therefore `can_manage_business_unit`, which gates all clients/invoices/
+  invoice_sequences/guests RLS policies) already honors **both**: a user counts
+  as an owner if `business_units.user_id = auth.uid()` **or** they have a
+  `business_unit_members` row with `role = 'owner'`. So promoting a member to
+  `'owner'` today already grants them real, RLS-level manage rights — not just
+  a display change on the Members page. (An earlier version of this doc
+  claimed otherwise; that was based on reading migration 004 only and missed
+  that 005 already fixed it.)
+- The remaining real gap: `is_business_unit_owner` checks `business_units.user_id`
+  **unconditionally**, on top of the membership-role check. That makes the
+  original creator a permanent, un-revokable admin — if they demote their own
+  `business_unit_members.role` to `'viewer'`, they still secretly retain full
+  admin rights via `user_id`, while the UI would incorrectly show them as a
+  viewer. There is no existing path that lets the original creator genuinely
+  give up admin status.
 - Every business unit gets a `business_unit_members` row with `role='owner'`
   for its creator at creation time (`app/dashboard/business-units/actions.ts`),
   so the owner always has a corresponding membership row to update.
 
 ## Decision: single true owner
 
-`business_units.user_id` stays the sole source of truth for ownership. A
-transfer actually reassigns that column (via a secure server-side function),
-so the new owner immediately gets full real permissions everywhere (clients,
-invoices, business unit switcher, etc.), and the old owner becomes a regular
-viewer. `business_unit_members.role` becomes a mirror of `business_units.user_id`
-for display/query convenience — kept in sync only by the transfer function, no
-longer an independent permission source. This also fixes the pre-existing gap
-above as a side effect, since the two can no longer drift apart.
+`business_units.user_id` stays the sole source of truth for ownership, because
+it's the only thing that lets the *current* real owner (who may be the
+original creator) genuinely step down — no combination of
+`business_unit_members.role` changes can revoke a creator's access as long as
+`is_business_unit_owner` keeps special-casing `user_id`. A transfer actually
+reassigns that column (via a secure server-side function), so the new owner
+immediately gets full real permissions everywhere (clients, invoices, business
+unit switcher, etc.), and the old owner becomes a regular viewer with no
+lingering hidden access. `business_unit_members.role` becomes a mirror of
+`business_units.user_id` for display/query convenience — kept in sync only by
+the transfer function, never set independently elsewhere.
 
 "Always exactly one owner" needs no invariant-checking logic — it falls out of
 `business_units.user_id` being a required, single-valued column.
