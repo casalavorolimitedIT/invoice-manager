@@ -197,18 +197,25 @@ export async function PATCH(
     );
   }
 
+  if (result.data.role !== "owner") {
+    return NextResponse.json(
+      { error: "A member is already a viewer; there is nothing to update." },
+      { status: 400 }
+    );
+  }
+
   const businessUnit = await getOwnedBusinessUnit(supabase, id, user.id);
 
   if (!businessUnit) {
     return NextResponse.json(
-      { error: "Only business-unit owners can update member roles." },
+      { error: "Only a current owner can transfer ownership." },
       { status: 403 }
     );
   }
 
   if (result.data.memberUserId === user.id) {
     return NextResponse.json(
-      { error: "You cannot change your own owner role from this screen." },
+      { error: "You are already the owner." },
       { status: 400 }
     );
   }
@@ -224,11 +231,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Member not found." }, { status: 404 });
   }
 
-  const { error } = await supabase
-    .from("business_unit_members")
-    .update({ role: result.data.role })
-    .eq("business_unit_id", id)
-    .eq("user_id", result.data.memberUserId);
+  const { error } = await supabase.rpc("transfer_business_unit_ownership", {
+    p_business_unit_id: id,
+    p_new_owner_id: result.data.memberUserId,
+  });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
