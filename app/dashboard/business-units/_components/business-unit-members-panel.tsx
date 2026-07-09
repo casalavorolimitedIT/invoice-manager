@@ -295,6 +295,11 @@ export function BusinessUnitMembersPanel({
                                 handleRoleChange(member, value as "editor" | "viewer");
                               }
                             }}
+                            items={[
+                              { value: "viewer", label: "Viewer" },
+                              { value: "editor", label: "Editor" },
+                              { value: "owner", label: "Owner" },
+                            ]}
                           >
                             <SelectTrigger size="sm" className="w-28">
                               <SelectValue />
