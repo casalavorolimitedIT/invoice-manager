@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createActionClient } from "@/lib/supabase/action";
-import { getOwnedBusinessUnit } from "@/lib/supabase/business-units";
+import { getEditableBusinessUnit } from "@/lib/supabase/business-units";
 import { invoiceSchema } from "@/lib/types/invoice";
 
 export async function POST(request: Request) {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   const input = result.data;
-  const bu = await getOwnedBusinessUnit(input.business_unit_id);
+  const bu = await getEditableBusinessUnit(input.business_unit_id);
 
   if (!bu) {
     return NextResponse.json({ error: "Business unit not found" }, { status: 404 });

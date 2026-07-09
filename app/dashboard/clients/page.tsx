@@ -14,7 +14,7 @@ import { ClientsClient } from "./_components/clients-client";
 export default async function ClientsPage() {
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
   const clients = await getClients(activeBusinessUnitId ?? undefined);
-  const canCreateClient = businessUnits.some((businessUnit) => businessUnit.current_user_can_manage);
+  const canCreateClient = businessUnits.some((businessUnit) => businessUnit.current_user_can_edit);
 
   return (
     <>

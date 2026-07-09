@@ -12,7 +12,7 @@ export default async function DashboardPage() {
 
   const currency = activeBusinessUnit?.default_currency ?? businessUnits[0]?.default_currency ?? "NGN";
   const scopeLabel = activeBusinessUnit ? activeBusinessUnit.name : "All business units";
-  const canCreateInvoice = businessUnits.some((businessUnit) => businessUnit.current_user_can_manage);
+  const canCreateInvoice = businessUnits.some((businessUnit) => businessUnit.current_user_can_edit);
 
   return (
     <DashboardOverviewClient

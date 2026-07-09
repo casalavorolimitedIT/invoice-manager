@@ -1,7 +1,7 @@
 "use server";
 
 import { createActionClient } from "@/lib/supabase/action";
-import { getOwnedBusinessUnit } from "@/lib/supabase/business-units";
+import { getEditableBusinessUnit } from "@/lib/supabase/business-units";
 import { invoiceSchema, type InvoiceInput, type InvoiceStatus } from "@/lib/types/invoice";
 import { redirect } from "next/navigation";
 
@@ -27,7 +27,7 @@ export async function createInvoice(
   const input = result.data;
 
   // Fetch business unit for snapshot + authoritative tax rate
-  const bu = await getOwnedBusinessUnit(input.business_unit_id);
+  const bu = await getEditableBusinessUnit(input.business_unit_id);
 
   if (!bu) return { error: "Business unit not found" };
 

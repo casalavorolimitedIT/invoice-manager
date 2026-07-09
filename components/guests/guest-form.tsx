@@ -122,7 +122,7 @@ export function GuestForm({
   const hasShownInitialOfflineToastRef = useRef(false);
 
   const writableBusinessUnits = useMemo(
-    () => businessUnits.filter((businessUnit) => businessUnit.current_user_can_manage),
+    () => businessUnits.filter((businessUnit) => businessUnit.current_user_can_edit),
     [businessUnits]
   );
 

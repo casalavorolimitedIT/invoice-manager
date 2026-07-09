@@ -10,7 +10,7 @@ import { GuestsClient } from "./_components/guests-client";
 export default async function GuestListPage() {
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
   const guests = await getGuests();
-  const canCreateGuest = businessUnits.some((businessUnit) => businessUnit.current_user_can_manage);
+  const canCreateGuest = businessUnits.some((businessUnit) => businessUnit.current_user_can_edit);
 
   return (
     <>

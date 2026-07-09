@@ -202,7 +202,7 @@ export function GuestsClient({
             <tbody className="divide-y">
               {paginatedGuests.map((guest) => {
                 const businessUnit = businessUnitMap[guest.business_unit_id];
-                const canManage = businessUnit?.current_user_can_manage ?? false;
+                const canManage = businessUnit?.current_user_can_edit ?? false;
 
                 return (
                   <tr key={guest.id} className="hover:bg-muted/30 transition-colors">

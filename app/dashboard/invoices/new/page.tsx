@@ -15,7 +15,7 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
   const { clientId } = await searchParams;
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
   const clients = await getClients();
-  const writableBusinessUnits = businessUnits.filter((businessUnit) => businessUnit.current_user_can_manage);
+  const writableBusinessUnits = businessUnits.filter((businessUnit) => businessUnit.current_user_can_edit);
   const writableBusinessUnitIds = new Set(writableBusinessUnits.map((businessUnit) => businessUnit.id));
   const writableClients = clients.filter((client) => writableBusinessUnitIds.has(client.business_unit_id));
   const initialClient = clientId

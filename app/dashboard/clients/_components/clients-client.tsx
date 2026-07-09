@@ -53,7 +53,7 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
 
     return clients.filter((client) => {
       const businessUnit = businessUnitMap[client.business_unit_id];
-      const canManage = businessUnit?.current_user_can_manage ?? false;
+      const canManage = businessUnit?.current_user_can_edit ?? false;
 
       if (businessUnitFilter !== "all" && client.business_unit_id !== businessUnitFilter) {
         return false;
@@ -167,7 +167,7 @@ export function ClientsClient({ clients, businessUnits }: ClientsClientProps) {
             <tbody className="divide-y">
               {paginatedClients.map((client) => {
                 const businessUnit = businessUnitMap[client.business_unit_id];
-                const canManage = businessUnit?.current_user_can_manage ?? false;
+                const canManage = businessUnit?.current_user_can_edit ?? false;
 
                 return (
                   <tr key={client.id} className="hover:bg-muted/30 transition-colors">

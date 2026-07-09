@@ -24,7 +24,7 @@ export default async function EditClientPage({ params }: Props) {
     getBusinessUnitScope().then((scope) => scope.businessUnits),
   ]);
   const canManageClient = businessUnits.some(
-    (businessUnit) => businessUnit.id === client?.business_unit_id && businessUnit.current_user_can_manage
+    (businessUnit) => businessUnit.id === client?.business_unit_id && businessUnit.current_user_can_edit
   );
 
   if (!client || !user || !canManageClient) notFound();

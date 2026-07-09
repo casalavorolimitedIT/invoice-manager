@@ -14,7 +14,7 @@ type NewClientPageProps = {
 export default async function NewClientPage({ searchParams }: NewClientPageProps) {
   const { guestId } = await searchParams;
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
-  const writableBusinessUnits = businessUnits.filter((businessUnit) => businessUnit.current_user_can_manage);
+  const writableBusinessUnits = businessUnits.filter((businessUnit) => businessUnit.current_user_can_edit);
   const writableActiveBusinessUnitId = writableBusinessUnits.some(
     (businessUnit) => businessUnit.id === activeBusinessUnitId
   )

@@ -28,6 +28,7 @@ function withCurrentUserAccess(
       ...businessUnit,
       current_user_role: currentUserRole,
       current_user_can_manage: currentUserRole === "owner",
+      current_user_can_edit: currentUserRole === "owner" || currentUserRole === "editor",
     } satisfies BusinessUnit;
   });
 }
@@ -121,6 +122,28 @@ export async function getOwnedBusinessUnit(id: string): Promise<BusinessUnit | n
   const businessUnitWithAccess = withCurrentUserAccess([businessUnit], user.id, memberships)[0] ?? null;
 
   if (!businessUnitWithAccess?.current_user_can_manage) {
+    return null;
+  }
+
+  return businessUnitWithAccess;
+}
+
+export async function getEditableBusinessUnit(id: string): Promise<BusinessUnit | null> {
+  const supabase = await createClient();
+  const user = await getUserOrNull(supabase);
+  if (!user) return null;
+
+  const memberships = await getCurrentUserMemberships(user.id);
+
+  const businessUnit = await getAccessibleBusinessUnit(id);
+
+  if (!businessUnit) {
+    return null;
+  }
+
+  const businessUnitWithAccess = withCurrentUserAccess([businessUnit], user.id, memberships)[0] ?? null;
+
+  if (!businessUnitWithAccess?.current_user_can_edit) {
     return null;
   }
 

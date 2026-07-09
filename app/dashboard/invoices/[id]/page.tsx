@@ -54,7 +54,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
   if (!invoice) notFound();
 
   const businessUnit = await getBusinessUnit(invoice.business_unit_id);
-  const canManageInvoice = Boolean(user && businessUnit?.current_user_can_manage);
+  const canManageInvoice = Boolean(user && businessUnit?.current_user_can_edit);
 
   const payload = invoiceToPreviewPayload(invoice);
   const invoiceExportElementId = "invoice-document-export";

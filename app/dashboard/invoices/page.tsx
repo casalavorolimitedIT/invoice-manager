@@ -18,7 +18,7 @@ interface Props {
 export default async function InvoicesPage({ searchParams }: Props) {
   const { status } = await searchParams;
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
-  const canCreateInvoice = businessUnits.some((businessUnit) => businessUnit.current_user_can_manage);
+  const canCreateInvoice = businessUnits.some((businessUnit) => businessUnit.current_user_can_edit);
 
   const invoices = await getInvoices({ businessUnitId: activeBusinessUnitId ?? undefined });
   const initialStatus =

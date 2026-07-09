@@ -84,6 +84,7 @@ export type BusinessUnit = BusinessUnitInput & {
   updated_at: string;
   current_user_role?: BusinessUnitMemberRole | null;
   current_user_can_manage?: boolean;
+  current_user_can_edit?: boolean;
 };
 
 export type BusinessUnitMember = {

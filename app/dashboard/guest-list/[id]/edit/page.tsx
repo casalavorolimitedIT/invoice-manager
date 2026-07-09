@@ -21,7 +21,7 @@ export default async function EditGuestPage({ params }: Props) {
 
   const [guest, scope] = await Promise.all([getGuest(id), getBusinessUnitScope()]);
   const canManageGuest = scope.businessUnits.some(
-    (businessUnit) => businessUnit.id === guest?.business_unit_id && businessUnit.current_user_can_manage
+    (businessUnit) => businessUnit.id === guest?.business_unit_id && businessUnit.current_user_can_edit
   );
 
   if (!guest || !user || !canManageGuest) notFound();

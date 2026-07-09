@@ -8,7 +8,7 @@ import { getBusinessUnitScope } from "@/lib/business-unit-scope";
 
 export default async function NewGuestPage() {
   const { businessUnits, activeBusinessUnitId } = await getBusinessUnitScope();
-  const writableBusinessUnits = businessUnits.filter((businessUnit) => businessUnit.current_user_can_manage);
+  const writableBusinessUnits = businessUnits.filter((businessUnit) => businessUnit.current_user_can_edit);
   const writableActiveBusinessUnitId = writableBusinessUnits.some((businessUnit) => businessUnit.id === activeBusinessUnitId)
     ? activeBusinessUnitId
     : writableBusinessUnits[0]?.id;
