@@ -300,6 +300,7 @@ export function BusinessUnitMembersPanel({
                               { value: "editor", label: "Editor" },
                               { value: "owner", label: "Owner" },
                             ]}
+                            disabled={isPending}
                           >
                             <SelectTrigger size="sm" className="w-28">
                               <SelectValue />

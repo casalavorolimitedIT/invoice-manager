@@ -215,7 +215,7 @@ export async function PATCH(
 
   const { data: existingMember } = await supabase
     .from("business_unit_members")
-    .select("user_id, role")
+    .select("user_id")
     .eq("business_unit_id", id)
     .eq("user_id", result.data.memberUserId)
     .single();
