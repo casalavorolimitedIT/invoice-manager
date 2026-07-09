@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Delete01Icon, Shield01Icon, UserAdd02Icon } from "@hugeicons/core-free-icons";
+import { Delete01Icon, UserAdd02Icon } from "@hugeicons/core-free-icons";
 
 const MEMBERS_PAGE_SIZE = 10;
 
@@ -135,6 +135,25 @@ export function BusinessUnitMembersPanel({
     });
   }
 
+  function handleRoleChange(member: BusinessUnitMember, role: "editor" | "viewer") {
+    startTransition(async () => {
+      const result = await requestMembershipUpdate("PATCH", {
+        memberUserId: member.user_id,
+        role,
+      });
+
+      if (result.error) {
+        appToast.error("Could not update role", { description: result.error });
+        return;
+      }
+
+      appToast.success("Role updated", {
+        description: `${member.full_name ?? member.email ?? "This user"} is now ${role === "editor" ? "an editor" : "a viewer"}.`,
+      });
+      window.location.reload();
+    });
+  }
+
   function handleRemove(member: BusinessUnitMember) {
     startTransition(async () => {
       const result = await requestMembershipUpdate("DELETE", {
@@ -217,6 +236,7 @@ export function BusinessUnitMembersPanel({
                 items={[
                   { value: "all", label: "All roles" },
                   { value: "owner", label: "Owner" },
+                  { value: "editor", label: "Editor" },
                   { value: "viewer", label: "Viewer" },
                 ]}
               >
@@ -227,6 +247,7 @@ export function BusinessUnitMembersPanel({
                   <SelectGroup>
                     <SelectItem value="all">All roles</SelectItem>
                     <SelectItem value="owner">Owner</SelectItem>
+                    <SelectItem value="editor">Editor</SelectItem>
                     <SelectItem value="viewer">Viewer</SelectItem>
                   </SelectGroup>
                 </SelectContent>
@@ -249,7 +270,6 @@ export function BusinessUnitMembersPanel({
               <TableBody>
                 {paginatedMembers.map((member) => {
                   const displayName = member.full_name?.trim() || member.email || member.user_id;
-                  const isOwner = member.role === "owner";
                   const isPrimaryOwner = member.user_id === primaryOwnerUserId;
 
                   return (
@@ -263,10 +283,30 @@ export function BusinessUnitMembersPanel({
                         </div>
                       </TableCell>
                       <TableCell>
-                        {isOwner ? (
+                        {isPrimaryOwner ? (
                           <Badge variant="default">Owner</Badge>
                         ) : (
-                          <span className="text-sm text-muted-foreground">Viewer</span>
+                          <Select
+                            value={member.role}
+                            onValueChange={(value: string) => {
+                              if (value === "owner") {
+                                setTransferTarget(member);
+                              } else {
+                                handleRoleChange(member, value as "editor" | "viewer");
+                              }
+                            }}
+                          >
+                            <SelectTrigger size="sm" className="w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectItem value="viewer">Viewer</SelectItem>
+                                <SelectItem value="editor">Editor</SelectItem>
+                                <SelectItem value="owner">Owner</SelectItem>
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -274,32 +314,17 @@ export function BusinessUnitMembersPanel({
                       </TableCell>
                       <TableCell className="text-right">
                         {!isPrimaryOwner ? (
-                          <div className="flex items-center justify-end gap-2">
-                            {!isOwner ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="gap-1.5 text-zinc-700"
-                                disabled={isPending}
-                                onClick={() => setTransferTarget(member)}
-                              >
-                                <HugeiconsIcon icon={Shield01Icon} strokeWidth={2} className="size-3.5" />
-                                Make owner
-                              </Button>
-                            ) : null}
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="gap-1.5 text-destructive hover:text-destructive"
-                              disabled={isPending}
-                              onClick={() => (isOwner ? setRemoveTarget(member) : handleRemove(member))}
-                            >
-                              <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-3.5" />
-                              Remove
-                            </Button>
-                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1.5 text-destructive hover:text-destructive"
+                            disabled={isPending}
+                            onClick={() => (member.role !== "viewer" ? setRemoveTarget(member) : handleRemove(member))}
+                          >
+                            <HugeiconsIcon icon={Delete01Icon} strokeWidth={2} className="size-3.5" />
+                            Remove
+                          </Button>
                         ) : (
                           <span className="text-xs text-muted-foreground">Owner access is permanent</span>
                         )}
@@ -366,10 +391,10 @@ export function BusinessUnitMembersPanel({
         >
           <AlertDialogContent size="sm">
             <AlertDialogHeader>
-              <AlertDialogTitle>Remove owner access?</AlertDialogTitle>
+              <AlertDialogTitle>Remove access?</AlertDialogTitle>
               <AlertDialogDescription>
                 {removeTarget
-                  ? `${removeTarget.full_name ?? removeTarget.email ?? "This user"} currently has owner access to ${businessUnitName}. Removing them revokes all access, including admin rights.`
+                  ? `${removeTarget.full_name ?? removeTarget.email ?? "This user"} currently has ${removeTarget.role} access to ${businessUnitName}. Removing them revokes all access${removeTarget.role === "owner" ? ", including admin rights" : ""}.`
                   : null}
               </AlertDialogDescription>
             </AlertDialogHeader>
