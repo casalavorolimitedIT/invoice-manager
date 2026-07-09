@@ -71,7 +71,7 @@ export const businessUnitSchema = z.object({
 
 export type BusinessUnitInput = z.infer<typeof businessUnitSchema>;
 
-export const BUSINESS_UNIT_MEMBER_ROLES = ["owner", "viewer"] as const;
+export const BUSINESS_UNIT_MEMBER_ROLES = ["owner", "editor", "viewer"] as const;
 
 export type BusinessUnitMemberRole = (typeof BUSINESS_UNIT_MEMBER_ROLES)[number];
 

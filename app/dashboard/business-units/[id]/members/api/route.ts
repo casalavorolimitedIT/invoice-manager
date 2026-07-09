@@ -204,26 +204,12 @@ export async function PATCH(
     );
   }
 
-  if (result.data.role !== "owner") {
-    return NextResponse.json(
-      { error: "A member is already a viewer; there is nothing to update." },
-      { status: 400 }
-    );
-  }
-
   const businessUnit = await getOwnedBusinessUnit(supabase, id, user.id);
 
   if (!businessUnit) {
     return NextResponse.json(
-      { error: "Only a current owner can transfer ownership." },
+      { error: "Only a current owner can change member roles." },
       { status: 403 }
-    );
-  }
-
-  if (result.data.memberUserId === user.id) {
-    return NextResponse.json(
-      { error: "You are already the owner." },
-      { status: 400 }
     );
   }
 
@@ -238,10 +224,38 @@ export async function PATCH(
     return NextResponse.json({ error: "Member not found." }, { status: 404 });
   }
 
-  const { error } = await supabase.rpc("transfer_business_unit_ownership", {
-    p_business_unit_id: id,
-    p_new_owner_id: result.data.memberUserId,
-  });
+  if (result.data.memberUserId === businessUnit.user_id) {
+    return NextResponse.json(
+      { error: "The primary owner's role can't be changed directly. Transfer ownership instead." },
+      { status: 400 }
+    );
+  }
+
+  if (result.data.role === "owner") {
+    if (result.data.memberUserId === user.id) {
+      return NextResponse.json(
+        { error: "You are already the owner." },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase.rpc("transfer_business_unit_ownership", {
+      p_business_unit_id: id,
+      p_new_owner_id: result.data.memberUserId,
+    });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  const { error } = await supabase
+    .from("business_unit_members")
+    .update({ role: result.data.role })
+    .eq("business_unit_id", id)
+    .eq("user_id", result.data.memberUserId);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
