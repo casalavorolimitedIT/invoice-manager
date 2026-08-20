@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { BusinessUnit, GuestWithImageUrl } from "@/lib/types/invoice";
+import { guestSpaHealthConditionLabel, type BusinessUnit, type GuestWithImageUrl } from "@/lib/types/invoice";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/custom/search-input";
 import { TablePagination } from "@/components/custom/table-pagination";
@@ -46,6 +46,28 @@ const identificationItems = [
   { value: "other", label: "Other" },
 ];
 
+const SPA_CONDITION_PREVIEW_COUNT = 2;
+
+/** First couple of declared conditions, with a "+N" tail for the rest. */
+function spaConditionSummary(guest: GuestWithImageUrl) {
+  const conditions = guest.spa_health_conditions ?? [];
+  if (conditions.length === 0) return guest.spa_health_notes ? "See notes" : "";
+
+  const preview = conditions
+    .slice(0, SPA_CONDITION_PREVIEW_COUNT)
+    .map(guestSpaHealthConditionLabel)
+    .join(", ");
+  const remaining = conditions.length - SPA_CONDITION_PREVIEW_COUNT;
+
+  return remaining > 0 ? `${preview} +${remaining}` : preview;
+}
+
+const spaServiceItems = [
+  { value: "all", label: "All guests" },
+  { value: "spa", label: "Spa guests" },
+  { value: "non-spa", label: "Non-spa guests" },
+];
+
 export function GuestsClient({
   guests,
   businessUnits,
@@ -59,6 +81,7 @@ export function GuestsClient({
   const [search, setSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("all");
   const [identificationFilter, setIdentificationFilter] = useState("all");
+  const [spaServiceFilter, setSpaServiceFilter] = useState("all");
   const [businessUnitFilter, setBusinessUnitFilter] = useState(initialBusinessUnitFilter);
 
   const businessUnitMap = useMemo(
@@ -78,6 +101,7 @@ export function GuestsClient({
     search.trim() !== "" ||
     genderFilter !== "all" ||
     identificationFilter !== "all" ||
+    spaServiceFilter !== "all" ||
     businessUnitFilter !== "all";
 
   function clearFilters() {
@@ -85,6 +109,7 @@ export function GuestsClient({
     setSearch("");
     setGenderFilter("all");
     setIdentificationFilter("all");
+    setSpaServiceFilter("all");
     setBusinessUnitFilter("all");
   }
 
@@ -98,6 +123,8 @@ export function GuestsClient({
       if (identificationFilter !== "all" && (guest.identification_type ?? "none") !== identificationFilter) {
         return false;
       }
+      if (spaServiceFilter === "spa" && !guest.is_spa_service) return false;
+      if (spaServiceFilter === "non-spa" && guest.is_spa_service) return false;
       if (businessUnitFilter !== "all" && guest.business_unit_id !== businessUnitFilter) return false;
 
       if (!query) return true;
@@ -110,6 +137,9 @@ export function GuestsClient({
         guest.nationality,
         guest.identification_number,
         guest.identification_type ? identificationLabels[guest.identification_type] ?? guest.identification_type : "",
+        guest.is_spa_service ? "spa service" : "",
+        ...(guest.spa_health_conditions ?? []).map(guestSpaHealthConditionLabel),
+        guest.spa_health_notes,
         businessUnit?.name,
       ]
         .filter(Boolean)
@@ -118,7 +148,7 @@ export function GuestsClient({
 
       return haystack.includes(query);
     });
-  }, [businessUnitFilter, businessUnitMap, genderFilter, guests, identificationFilter, search]);
+  }, [businessUnitFilter, businessUnitMap, genderFilter, guests, identificationFilter, search, spaServiceFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredGuests.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -127,7 +157,7 @@ export function GuestsClient({
   return (
     <div className="space-y-4">
       <div className="rounded-xl border bg-card p-4">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_12rem_14rem_12rem] xl:items-end">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_11rem_13rem_11rem_12rem] xl:items-end">
           <div className="space-y-1.5 lg:bottom-1.5 relative">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Search</p>
             <SearchInput
@@ -165,6 +195,17 @@ export function GuestsClient({
             </Select>
           </div>
           <div className="space-y-1.5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Spa Service</p>
+            <Select value={spaServiceFilter} onValueChange={(value: string) => { setPage(0); setSpaServiceFilter(value); }} items={spaServiceItems}>
+              <SelectTrigger className="h-11! w-full"><SelectValue placeholder="All guests" /></SelectTrigger>
+              <SelectContent>
+                {spaServiceItems.map(({ value, label }) => (
+                  <SelectItem key={value} value={value} label={label}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Business Unit</p>
             <Select value={businessUnitFilter} onValueChange={(value: string) => { setPage(0); setBusinessUnitFilter(value); }} items={businessUnitItems}>
               <SelectTrigger className="h-11! w-full"><SelectValue placeholder="All business units" /></SelectTrigger>
@@ -189,12 +230,13 @@ export function GuestsClient({
 
       {filteredGuests.length > 0 ? (
         <div className="rounded-xl border overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[60rem] text-sm">
             <thead className="bg-muted/50 border-b">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Guest</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Contact</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Means of Identification</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Spa Service</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Business Unit</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -231,6 +273,22 @@ export function GuestsClient({
                         ) : null}
                       </div>
                     </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {guest.is_spa_service ? (
+                        <div className="space-y-1.5">
+                          <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+                            Spa
+                          </Badge>
+                          {spaConditionSummary(guest) ? (
+                            <div className="text-xs whitespace-nowrap text-muted-foreground">
+                              {spaConditionSummary(guest)}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 hidden xl:table-cell">
                       {businessUnit ? <Badge variant="secondary">{businessUnit.name}</Badge> : null}
                     </td>
@@ -246,7 +304,7 @@ export function GuestsClient({
       ) : (
         <div className="rounded-xl border border-dashed p-12 text-center space-y-3">
           <p className="font-medium text-sm">No guests match your filters</p>
-          <p className="text-xs text-muted-foreground">Try a different business unit, identification type, or search term.</p>
+          <p className="text-xs text-muted-foreground">Try a different business unit, identification type, spa filter, or search term.</p>
         </div>
       )}
 

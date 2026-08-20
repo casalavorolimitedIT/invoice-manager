@@ -14,6 +14,7 @@ import { derivePublicGuestFormSlug } from "@/lib/business-unit-public-slug";
 import { appToast } from "@/components/custom/toast-ui";
 import { ImageUpload } from "@/components/custom/image-upload";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +45,7 @@ const businessUnitSchema = yup.object().shape({
   name: yup.string().required("Business Name is required"),
   code: yup.string().required("Code is required").max(10, "Max 10 characters"),
   public_guest_form_slug: yup.string().nullable().transform(emptyToNull).min(3, "Min 3 characters").max(80, "Max 80 characters").optional(),
+  guest_form_spa_default: yup.boolean().default(false),
   category: yup.string().optional(),
   website: yup.string().nullable().transform(emptyToNull).url("Must be a valid URL").optional(),
 
@@ -109,6 +111,7 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
       name: defaultValues?.name ?? "",
       code: defaultValues?.code ?? "",
       public_guest_form_slug: defaultValues?.public_guest_form_slug ?? "",
+      guest_form_spa_default: defaultValues?.guest_form_spa_default ?? false,
       category: defaultValues?.category ?? "",
       website: defaultValues?.website ?? "",
       address: defaultValues?.address ?? "",
@@ -142,6 +145,7 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
   const businessName = useWatch({ control, name: "name" }) || "";
   const businessCode = useWatch({ control, name: "code" }) || "";
   const publicGuestFormSlug = useWatch({ control, name: "public_guest_form_slug" }) || "";
+  const guestFormSpaDefault = useWatch({ control, name: "guest_form_spa_default" }) ?? false;
   const paymentTerms = useWatch({ control, name: "payment_terms" }) || DEFAULT_PAYMENT_TERMS;
   const paymentTermOptions = PAYMENT_TERMS_OPTIONS.some((option) => option.value === paymentTerms)
     ? PAYMENT_TERMS_OPTIONS
@@ -270,6 +274,31 @@ export function BusinessUnitForm({ id, defaultValues }: BusinessUnitFormProps) {
             {errors.public_guest_form_slug && (
               <p className="text-[11px] text-destructive">{errors.public_guest_form_slug.message}</p>
             )}
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <div className="flex items-start gap-3 rounded-xl border bg-muted/20 p-4">
+              <Checkbox
+                id="guest_form_spa_default"
+                checked={guestFormSpaDefault}
+                onCheckedChange={(checked) =>
+                  setValue("guest_form_spa_default", Boolean(checked), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="guest_form_spa_default" className="cursor-pointer">
+                  Always treat guest form submissions as spa bookings
+                </Label>
+                <p className="text-[11px] text-muted-foreground">
+                  For a spa or wellness unit. The health screening is always shown and required, and
+                  the guest is never asked whether it applies.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2 ">

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createActionClient } from "@/lib/supabase/action";
-import { guestSchema } from "@/lib/types/invoice";
+import { guestSchemaWithSpaCheck, normalizeGuestSpaFields } from "@/lib/types/invoice";
 
 export async function POST(request: Request) {
   const supabase = await createActionClient();
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const result = guestSchema.safeParse(body);
+  const result = guestSchemaWithSpaCheck.safeParse(body);
 
   if (!result.success) {
     return NextResponse.json(
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   const { error } = await supabase.from("guests").insert({
-    ...result.data,
+    ...normalizeGuestSpaFields(result.data),
     user_id: user.id,
   });
 

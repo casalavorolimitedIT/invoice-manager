@@ -7,14 +7,26 @@ import { useForm, Controller, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { appToast } from "@/lib/toast";
-import { guestSchema, type BusinessUnit, type GuestWithImageUrl, type PublicGuestFormBusinessUnit } from "@/lib/types/invoice";
+import {
+  addGuestSpaDeclarationIssue,
+  guestSchema,
+  guestSpaHealthConditionLabel,
+  normalizeGuestSpaFields,
+  GUEST_SPA_HEALTH_CONDITIONS,
+  GUEST_SPA_NO_CONDITIONS_VALUE,
+  type BusinessUnit,
+  type GuestWithImageUrl,
+  type PublicGuestFormBusinessUnit,
+} from "@/lib/types/invoice";
 import { buildGuestIdentificationImagePath, GUEST_IDENTIFICATION_BUCKET, uploadCompressedImageToSupabase } from "@/lib/upload/images";
 import { BusinessUnitCombobox } from "@/components/custom/business-unit-combobox";
 import { ImageUpload } from "@/components/custom/image-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const genderOptions = [
@@ -46,6 +58,9 @@ type GuestFormValues = {
   identification_number?: string;
   identification_image_path?: string;
   emergency_contact: string;
+  is_spa_service: boolean;
+  spa_health_conditions: string[];
+  spa_health_notes?: string;
   notes?: string;
   metadata?: Record<string, unknown>;
 };
@@ -81,16 +96,21 @@ function buildDraftValues(values: GuestFormValues): GuestFormValues {
     identification_number: values.identification_number ?? "",
     identification_image_path: values.identification_image_path ?? "",
     emergency_contact: values.emergency_contact,
+    is_spa_service: values.is_spa_service,
+    spa_health_conditions: values.spa_health_conditions ?? [],
+    spa_health_notes: values.spa_health_notes ?? "",
     notes: values.notes ?? "",
     metadata: values.metadata,
   };
 }
 
 function buildPayload(values: GuestFormValues, uploadedPath?: string) {
-  const entries = Object.entries({
-    ...values,
-    identification_image_path: uploadedPath ?? values.identification_image_path,
-  }).filter(([, value]) => value !== undefined && value !== null && value !== "");
+  const entries = Object.entries(
+    normalizeGuestSpaFields({
+      ...values,
+      identification_image_path: uploadedPath ?? values.identification_image_path,
+    })
+  ).filter(([, value]) => value !== undefined && value !== null && value !== "");
 
   return Object.fromEntries(entries);
 }
@@ -129,6 +149,8 @@ export function GuestForm({
   const guestFormSchema = guestSchema.extend({
     identification_image_path: z.string().optional(),
   }).superRefine((values, ctx) => {
+    addGuestSpaDeclarationIssue(values, ctx);
+
     if (!values.identification_image_path && !imageFile) {
       ctx.addIssue({
         code: "custom",
@@ -168,15 +190,105 @@ export function GuestForm({
       identification_number: defaultValues?.identification_number ?? "",
       identification_image_path: defaultValues?.identification_image_path ?? "",
       emergency_contact: defaultValues?.emergency_contact ?? "",
+      is_spa_service: defaultValues?.is_spa_service ?? false,
+      spa_health_conditions: defaultValues?.spa_health_conditions ?? [],
+      spa_health_notes: defaultValues?.spa_health_notes ?? "",
     },
   });
 
   const selectedBusinessUnitId = useWatch({ control, name: "business_unit_id" });
   const watchedValues = useWatch({ control });
+  const isSpaService = useWatch({ control, name: "is_spa_service" }) ?? false;
+  const watchedSpaHealthConditions = useWatch({ control, name: "spa_health_conditions" });
+  const spaHealthConditions = useMemo(
+    () => watchedSpaHealthConditions ?? [],
+    [watchedSpaHealthConditions]
+  );
+  const [customCondition, setCustomCondition] = useState("");
+
+  const presetConditionValues = useMemo(
+    () => new Set<string>(GUEST_SPA_HEALTH_CONDITIONS.map((condition) => condition.value)),
+    []
+  );
+  const customConditions = useMemo(
+    () => spaHealthConditions.filter((condition) => !presetConditionValues.has(condition)),
+    [presetConditionValues, spaHealthConditions]
+  );
+
+  function setSpaConditions(next: string[]) {
+    setValue("spa_health_conditions", next, { shouldDirty: true, shouldValidate: true });
+  }
+
+  function toggleSpaService(checked: boolean) {
+    setValue("is_spa_service", checked, { shouldDirty: true, shouldValidate: true });
+
+    if (!checked) {
+      setSpaConditions([]);
+      setValue("spa_health_notes", "", { shouldDirty: true, shouldValidate: true });
+      setCustomCondition("");
+    }
+  }
+
+  function togglePresetCondition(value: string, checked: boolean) {
+    if (!checked) {
+      setSpaConditions(spaHealthConditions.filter((condition) => condition !== value));
+      return;
+    }
+
+    // "No known conditions" is exclusive — ticking it clears every other answer.
+    if (value === GUEST_SPA_NO_CONDITIONS_VALUE) {
+      setSpaConditions([value]);
+      return;
+    }
+
+    setSpaConditions([
+      ...spaHealthConditions.filter((condition) => condition !== GUEST_SPA_NO_CONDITIONS_VALUE),
+      value,
+    ]);
+  }
+
+  function addCustomCondition() {
+    const entry = customCondition.trim();
+    if (!entry) return;
+
+    const matchingPreset = GUEST_SPA_HEALTH_CONDITIONS.find(
+      (condition) => condition.label.toLowerCase() === entry.toLowerCase()
+    );
+
+    if (matchingPreset) {
+      togglePresetCondition(matchingPreset.value, true);
+      setCustomCondition("");
+      return;
+    }
+
+    const alreadyAdded = spaHealthConditions.some(
+      (condition) => condition.toLowerCase() === entry.toLowerCase()
+    );
+
+    if (!alreadyAdded && spaHealthConditions.length < 40) {
+      setSpaConditions([
+        ...spaHealthConditions.filter((condition) => condition !== GUEST_SPA_NO_CONDITIONS_VALUE),
+        entry,
+      ]);
+    }
+
+    setCustomCondition("");
+  }
   const selectedBusinessUnit =
     mode === "public"
       ? publicBusinessUnit
       : writableBusinessUnits.find((businessUnit) => businessUnit.id === selectedBusinessUnitId) ?? null;
+
+  // A spa-only business unit never asks the guest whether this is a spa
+  // booking — the screening is simply always part of the form.
+  const isSpaOnlyBusinessUnit = Boolean(selectedBusinessUnit?.guest_form_spa_default);
+  const showSpaHealthScreening = isSpaOnlyBusinessUnit || isSpaService;
+
+  useEffect(() => {
+    if (!isSpaOnlyBusinessUnit || isSpaService) return;
+
+    setValue("is_spa_service", true, { shouldValidate: true });
+  }, [isSpaOnlyBusinessUnit, isSpaService, setValue]);
   const draftStorageKey = useMemo(
     () =>
       getGuestFormDraftStorageKey({
@@ -228,6 +340,10 @@ export function GuestForm({
         identification_image_path:
           parsedDraft.identification_image_path ?? defaultValues?.identification_image_path ?? "",
         emergency_contact: parsedDraft.emergency_contact ?? defaultValues?.emergency_contact ?? "",
+        is_spa_service: parsedDraft.is_spa_service ?? defaultValues?.is_spa_service ?? false,
+        spa_health_conditions:
+          parsedDraft.spa_health_conditions ?? defaultValues?.spa_health_conditions ?? [],
+        spa_health_notes: parsedDraft.spa_health_notes ?? defaultValues?.spa_health_notes ?? "",
         notes: parsedDraft.notes ?? defaultValues?.notes ?? "",
         metadata: parsedDraft.metadata,
       });
@@ -249,7 +365,10 @@ export function GuestForm({
     defaultValues?.last_name,
     defaultValues?.nationality,
     defaultValues?.notes,
+    defaultValues?.is_spa_service,
     defaultValues?.phone_number,
+    defaultValues?.spa_health_conditions,
+    defaultValues?.spa_health_notes,
     draftStorageKey,
     initialBusinessUnitId,
     publicBusinessUnit?.id,
@@ -399,6 +518,9 @@ export function GuestForm({
           identification_number: "",
           identification_image_path: "",
           emergency_contact: "",
+          is_spa_service: isSpaOnlyBusinessUnit,
+          spa_health_conditions: [],
+          spa_health_notes: "",
           notes: "",
           metadata: undefined,
         });
@@ -535,6 +657,135 @@ export function GuestForm({
             <Input id="emergency_contact" {...register("emergency_contact")} />
             {errors.emergency_contact ? <p className="text-[11px] text-destructive">{errors.emergency_contact.message}</p> : null}
           </div>
+        </CardContent>
+      </div>
+
+      <div className="py-5 border-b border-muted">
+        <CardHeader>
+          <CardTitle>{isSpaOnlyBusinessUnit ? "Spa Health Screening" : "Spa Service"}</CardTitle>
+          <CardDescription>
+            {isSpaOnlyBusinessUnit
+              ? "Every treatment here is screened first, so the therapist knows what is safe for this guest."
+              : "Tell us if this guest is booking a spa treatment so the therapist can screen for conditions and allergies first."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="mt-5 space-y-5">
+          {isSpaOnlyBusinessUnit ? null : (
+            <div className="flex items-start gap-3 rounded-xl border bg-muted/20 p-4">
+              <Checkbox
+                id="is_spa_service"
+                checked={isSpaService}
+                onCheckedChange={(checked) => toggleSpaService(Boolean(checked))}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="is_spa_service" className="cursor-pointer">
+                  This guest is booking a spa service
+                </Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Leave unchecked for a regular stay with no spa treatment.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {showSpaHealthScreening ? (
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Medical conditions and allergies *</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Select everything that applies. Some treatments, oils, and pressure levels are
+                    unsafe with these conditions.
+                  </p>
+                </div>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {GUEST_SPA_HEALTH_CONDITIONS.map((condition) => {
+                    const checkboxId = `spa_condition_${condition.value}`;
+
+                    return (
+                      <div key={condition.value} className="flex items-center gap-3">
+                        <Checkbox
+                          id={checkboxId}
+                          checked={spaHealthConditions.includes(condition.value)}
+                          onCheckedChange={(checked) =>
+                            togglePresetCondition(condition.value, Boolean(checked))
+                          }
+                        />
+                        <Label htmlFor={checkboxId} className="cursor-pointer font-normal">
+                          {condition.label}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+                {errors.spa_health_conditions ? (
+                  <p className="text-[11px] text-destructive">
+                    {errors.spa_health_conditions.message}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="spa_custom_condition">Not on the list?</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="spa_custom_condition"
+                    value={customCondition}
+                    onChange={(event) => setCustomCondition(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter") return;
+                      event.preventDefault();
+                      addCustomCondition();
+                    }}
+                    placeholder="Type a condition or allergy"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addCustomCondition}
+                    disabled={!customCondition.trim()}
+                  >
+                    Add
+                  </Button>
+                </div>
+                {customConditions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {customConditions.map((condition) => (
+                      <span
+                        key={condition}
+                        className="inline-flex items-center gap-1.5 rounded-full border bg-muted/40 px-2.5 py-1 text-xs"
+                      >
+                        {guestSpaHealthConditionLabel(condition)}
+                        <button
+                          type="button"
+                          onClick={() => togglePresetCondition(condition, false)}
+                          className="text-muted-foreground transition hover:text-foreground"
+                          aria-label={`Remove ${condition}`}
+                        >
+                          {/* X icon */}
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="spa_health_notes">Additional health notes</Label>
+                <Textarea
+                  id="spa_health_notes"
+                  rows={3}
+                  placeholder="Medication, severity, areas to avoid, recent procedures..."
+                  {...register("spa_health_notes")}
+                />
+                {errors.spa_health_notes ? (
+                  <p className="text-[11px] text-destructive">{errors.spa_health_notes.message}</p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </div>
 

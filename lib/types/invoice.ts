@@ -37,6 +37,12 @@ export const businessUnitSchema = z.object({
     emptyStringToUndefined,
     z.string().min(3, "Min 3 characters").max(80, "Max 80 characters").optional()
   ),
+  // Accepts FormData strings as well as JSON booleans.
+  guest_form_spa_default: z.preprocess((value) => {
+    if (value === undefined || value === null || value === "") return false;
+    if (typeof value === "string") return value === "true" || value === "on";
+    return value;
+  }, z.boolean()),
   category: z.string().optional(),
   website: z.string().optional(),
 
@@ -99,7 +105,7 @@ export type BusinessUnitMember = {
 
 export type PublicGuestFormBusinessUnit = Pick<
   BusinessUnit,
-  "id" | "name" | "code" | "category" | "public_guest_form_slug"
+  "id" | "name" | "code" | "category" | "public_guest_form_slug" | "guest_form_spa_default"
 >;
 
 // ── Client ────────────────────────────────────────────────────────────────────
@@ -145,6 +151,35 @@ export const GUEST_IDENTIFICATION_TYPES = [
 ] as const;
 export type GuestIdentificationType = (typeof GUEST_IDENTIFICATION_TYPES)[number];
 
+export const GUEST_SPA_HEALTH_CONDITIONS = [
+  { value: "none", label: "No known conditions" },
+  { value: "pregnancy", label: "Pregnancy" },
+  { value: "high-blood-pressure", label: "High blood pressure" },
+  { value: "low-blood-pressure", label: "Low blood pressure" },
+  { value: "heart-condition", label: "Heart condition" },
+  { value: "diabetes", label: "Diabetes" },
+  { value: "epilepsy", label: "Epilepsy" },
+  { value: "asthma", label: "Asthma" },
+  { value: "skin-condition", label: "Skin condition / eczema" },
+  { value: "recent-surgery", label: "Recent surgery or injury" },
+  { value: "varicose-veins", label: "Varicose veins" },
+  { value: "nut-allergy", label: "Nut allergy" },
+  { value: "latex-allergy", label: "Latex allergy" },
+  { value: "fragrance-allergy", label: "Fragrance / essential oil allergy" },
+  { value: "sensitive-skin", label: "Sensitive skin" },
+] as const;
+
+export const GUEST_SPA_NO_CONDITIONS_VALUE = "none";
+
+const GUEST_SPA_HEALTH_CONDITION_LABELS: Record<string, string> = Object.fromEntries(
+  GUEST_SPA_HEALTH_CONDITIONS.map((condition) => [condition.value, condition.label])
+);
+
+/** Preset conditions render their label; free-text entries render as typed. */
+export function guestSpaHealthConditionLabel(value: string) {
+  return GUEST_SPA_HEALTH_CONDITION_LABELS[value] ?? value;
+}
+
 export const guestSchema = z.object({
   business_unit_id: z.string().uuid("Select a business unit"),
   first_name: z.string().min(1, "First name is required"),
@@ -163,9 +198,43 @@ export const guestSchema = z.object({
     z.string({ error: "Identification image is required" })
   ),
   emergency_contact: z.string().min(1, "Emergency contact is required"),
+  is_spa_service: z.boolean().default(false),
+  spa_health_conditions: z.array(z.string().min(1)).max(40).default([]),
+  spa_health_notes: optionalString,
   notes: optionalString,
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
+
+type GuestSpaDeclaration = {
+  is_spa_service?: boolean;
+  spa_health_conditions?: string[];
+  spa_health_notes?: string;
+};
+
+/**
+ * Spa guests must declare something — a preset condition, the explicit
+ * "no known conditions" option, or a free-text entry.
+ */
+export function addGuestSpaDeclarationIssue(values: GuestSpaDeclaration, ctx: z.RefinementCtx) {
+  if (!values.is_spa_service) return;
+  if ((values.spa_health_conditions ?? []).length > 0) return;
+  if (values.spa_health_notes?.trim()) return;
+
+  ctx.addIssue({
+    code: "custom",
+    path: ["spa_health_conditions"],
+    message: "Select a condition, or add one that is not listed",
+  });
+}
+
+/** Keeps health answers from lingering on a guest who is not booking a spa service. */
+export function normalizeGuestSpaFields<T extends GuestSpaDeclaration>(values: T): T {
+  if (values.is_spa_service) return values;
+
+  return { ...values, spa_health_conditions: [], spa_health_notes: undefined };
+}
+
+export const guestSchemaWithSpaCheck = guestSchema.superRefine(addGuestSpaDeclarationIssue);
 
 export type GuestInput = z.infer<typeof guestSchema>;
 

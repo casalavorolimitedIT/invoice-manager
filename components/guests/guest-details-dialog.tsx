@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { GuestWithImageUrl, BusinessUnit } from "@/lib/types/invoice";
+import { guestSpaHealthConditionLabel, type GuestWithImageUrl, type BusinessUnit } from "@/lib/types/invoice";
 import SmartImage from "@/components/custom/smart-images";
 import {
   Dialog,
@@ -104,6 +104,42 @@ export function GuestDetailsDialog({
               value={guest.identification_type ? identificationLabelMap[guest.identification_type] ?? guest.identification_type : null}
             />
             <DetailRow label="ID Number" value={guest.identification_number} />
+            <div className="rounded-xl border bg-muted/20 p-3 sm:col-span-2">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Spa Service</p>
+              {guest.is_spa_service ? (
+                <div className="mt-2 space-y-3">
+                  <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+                    Booking a spa service
+                  </Badge>
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Declared conditions and allergies
+                    </p>
+                    {(guest.spa_health_conditions ?? []).length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(guest.spa_health_conditions ?? []).map((condition) => (
+                          <Badge key={condition} variant="outline">
+                            {guestSpaHealthConditionLabel(condition)}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm text-foreground">None selected</p>
+                    )}
+                  </div>
+                  {guest.spa_health_notes ? (
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Health notes
+                      </p>
+                      <p className="mt-1 text-sm whitespace-pre-line text-foreground">{guest.spa_health_notes}</p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-1 text-sm text-foreground">Not a spa guest</p>
+              )}
+            </div>
             <div className="rounded-xl border bg-muted/20 p-3 sm:col-span-2">
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Business Unit</p>
               <div className="mt-2 flex items-center gap-2">

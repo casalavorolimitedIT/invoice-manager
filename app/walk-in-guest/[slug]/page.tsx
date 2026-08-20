@@ -58,7 +58,7 @@ export default async function WalkInGuestSlugPage({ params }: Props) {
           </div>
 
           <h1 className="text-[1.75rem] font-semibold tracking-[-0.04em] text-zinc-900">
-            Guest check-in
+            {businessUnit.guest_form_spa_default ? "Spa guest check-in" : "Guest check-in"}
           </h1>
 
           {/* Business unit pill */}

@@ -31,7 +31,10 @@ export default async function DashboardLayout({
         activeBusinessUnitId={activeBusinessUnitId}
         activeBusinessUnitName={activeBusinessUnit?.name ?? null}
       />
-      <SidebarInset>{children}</SidebarInset>
+      {/* min-w-0: without it the flex item's automatic min-width lets wide
+          tables stretch the whole pane instead of scrolling inside their own
+          overflow container. */}
+      <SidebarInset className="min-w-0">{children}</SidebarInset>
     </SidebarProvider>
   );
 }

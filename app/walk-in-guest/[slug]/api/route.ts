@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { guestSchema } from "@/lib/types/invoice";
+import { addGuestSpaDeclarationIssue, guestSchema } from "@/lib/types/invoice";
 import { createActionClient } from "@/lib/supabase/action";
 
-const publicGuestSchema = guestSchema.omit({ business_unit_id: true }).extend({
-  // email is optional on the public walk-in form (nullable in DB)
-  email: z.string().email("Enter a valid email address").optional(),
-});
+const publicGuestSchema = guestSchema
+  .omit({ business_unit_id: true })
+  .extend({
+    // email is optional on the public walk-in form (nullable in DB)
+    email: z.string().email("Enter a valid email address").optional(),
+  })
+  .superRefine(addGuestSpaDeclarationIssue);
 
 export async function POST(
   request: Request,
@@ -24,6 +27,8 @@ export async function POST(
     );
   }
 
+  // Spa fields are normalized inside submit_public_guest: only the database
+  // knows whether this business unit forces every submission to be a spa guest.
   const payload = result.data;
   const { error } = await supabase.rpc("submit_public_guest", {
     p_slug: slug,
@@ -40,6 +45,9 @@ export async function POST(
     p_emergency_contact: payload.emergency_contact,
     p_notes: null,
     p_metadata: {},
+    p_is_spa_service: payload.is_spa_service,
+    p_spa_health_conditions: payload.spa_health_conditions,
+    p_spa_health_notes: payload.spa_health_notes ?? null,
   });
 
   if (error) {
