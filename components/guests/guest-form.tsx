@@ -219,16 +219,6 @@ export function GuestForm({
     setValue("spa_health_conditions", next, { shouldDirty: true, shouldValidate: true });
   }
 
-  function toggleSpaService(checked: boolean) {
-    setValue("is_spa_service", checked, { shouldDirty: true, shouldValidate: true });
-
-    if (!checked) {
-      setSpaConditions([]);
-      setValue("spa_health_notes", "", { shouldDirty: true, shouldValidate: true });
-      setCustomCondition("");
-    }
-  }
-
   function togglePresetCondition(value: string, checked: boolean) {
     if (!checked) {
       setSpaConditions(spaHealthConditions.filter((condition) => condition !== value));
@@ -279,16 +269,19 @@ export function GuestForm({
       ? publicBusinessUnit
       : writableBusinessUnits.find((businessUnit) => businessUnit.id === selectedBusinessUnitId) ?? null;
 
-  // A spa-only business unit never asks the guest whether this is a spa
-  // booking — the screening is simply always part of the form.
-  const isSpaOnlyBusinessUnit = Boolean(selectedBusinessUnit?.guest_form_spa_default);
-  const showSpaHealthScreening = isSpaOnlyBusinessUnit || isSpaService;
+  // Spa screening belongs only to business units that opted in. Where it does
+  // apply it is always part of the form — the guest is never asked whether it
+  // does. An existing spa record stays editable even if the unit later opts out,
+  // so its declared conditions never become invisible but still required.
+  const isSpaBusinessUnit = Boolean(selectedBusinessUnit?.guest_form_spa_default);
+  const isEditingSpaGuest = mode === "dashboard" && Boolean(defaultValues?.is_spa_service);
+  const showSpaHealthScreening = isSpaBusinessUnit || isEditingSpaGuest;
 
   useEffect(() => {
-    if (!isSpaOnlyBusinessUnit || isSpaService) return;
+    if (isSpaService === showSpaHealthScreening) return;
 
-    setValue("is_spa_service", true, { shouldValidate: true });
-  }, [isSpaOnlyBusinessUnit, isSpaService, setValue]);
+    setValue("is_spa_service", showSpaHealthScreening, { shouldValidate: true });
+  }, [isSpaService, setValue, showSpaHealthScreening]);
   const draftStorageKey = useMemo(
     () =>
       getGuestFormDraftStorageKey({
@@ -518,7 +511,7 @@ export function GuestForm({
           identification_number: "",
           identification_image_path: "",
           emergency_contact: "",
-          is_spa_service: isSpaOnlyBusinessUnit,
+          is_spa_service: isSpaBusinessUnit,
           spa_health_conditions: [],
           spa_health_notes: "",
           notes: "",
@@ -660,36 +653,16 @@ export function GuestForm({
         </CardContent>
       </div>
 
+      {showSpaHealthScreening ? (
       <div className="py-5 border-b border-muted">
         <CardHeader>
-          <CardTitle>{isSpaOnlyBusinessUnit ? "Spa Health Screening" : "Spa Service"}</CardTitle>
+          <CardTitle>Spa Health Screening</CardTitle>
           <CardDescription>
-            {isSpaOnlyBusinessUnit
-              ? "Every treatment here is screened first, so the therapist knows what is safe for this guest."
-              : "Tell us if this guest is booking a spa treatment so the therapist can screen for conditions and allergies first."}
+            Every treatment here is screened first, so the therapist knows what is safe for this
+            guest.
           </CardDescription>
         </CardHeader>
         <CardContent className="mt-5 space-y-5">
-          {isSpaOnlyBusinessUnit ? null : (
-            <div className="flex items-start gap-3 rounded-xl border bg-muted/20 p-4">
-              <Checkbox
-                id="is_spa_service"
-                checked={isSpaService}
-                onCheckedChange={(checked) => toggleSpaService(Boolean(checked))}
-                className="mt-0.5"
-              />
-              <div className="space-y-1">
-                <Label htmlFor="is_spa_service" className="cursor-pointer">
-                  This guest is booking a spa service
-                </Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Leave unchecked for a regular stay with no spa treatment.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {showSpaHealthScreening ? (
             <div className="space-y-5">
               <div className="space-y-3">
                 <div className="space-y-1">
@@ -785,9 +758,9 @@ export function GuestForm({
                 ) : null}
               </div>
             </div>
-          ) : null}
         </CardContent>
       </div>
+      ) : null}
 
       <div className="border-none">
         <CardHeader>
