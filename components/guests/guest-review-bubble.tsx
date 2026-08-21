@@ -2,18 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import SmartImage from "@/components/custom/smart-images";
+import type { GuestReviewLink } from "@/lib/guest-review-links";
 
-/**
- * Google review destination for the spa. The QR image encodes this same URL —
- * the link is what makes the bubble usable on a phone, where the guest cannot
- * scan their own screen.
- */
-const SPA_REVIEW_URL = "https://g.page/r/CRczrLCr0uXhECE/review";
-
-/** Branded QR export for the Wuse spa. Swap this path to change the artwork. */
-const SPA_REVIEW_QR_IMAGE = "/wuse-spa-review.svg";
-
-export function SpaReviewBubble({ businessUnitName }: { businessUnitName?: string }) {
+export function GuestReviewBubble({
+  reviewLink,
+  businessUnitName,
+}: {
+  reviewLink: GuestReviewLink;
+  businessUnitName?: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +45,7 @@ export function SpaReviewBubble({ businessUnitName }: { businessUnitName?: strin
     >
       {isOpen ? (
         <div
-          id="spa-review-panel"
+          id="guest-review-panel"
           role="dialog"
           aria-label="Leave a review"
           className="w-[17rem] origin-bottom-right rounded-2xl border border-white/80 bg-white/95 p-4 shadow-[0_24px_60px_rgba(50,25,0,0.18)] backdrop-blur-xl"
@@ -73,7 +70,7 @@ export function SpaReviewBubble({ businessUnitName }: { businessUnitName?: strin
 
           <div className="mt-3 rounded-xl border border-zinc-200/80 bg-white p-3">
             <SmartImage
-              src={SPA_REVIEW_QR_IMAGE}
+              src={reviewLink.qrImage}
               alt={`Scan to review ${businessUnitName ?? "us"} on Google`}
               width={220}
               height={220}
@@ -88,23 +85,27 @@ export function SpaReviewBubble({ businessUnitName }: { businessUnitName?: strin
             Scan with your phone camera
           </p>
 
-          <div className="my-3 flex items-center gap-2">
-            <span className="h-px flex-1 bg-zinc-200" />
-            <span className="text-[10px] uppercase tracking-wide text-zinc-400">or</span>
-            <span className="h-px flex-1 bg-zinc-200" />
-          </div>
-
           {/* Already on a phone? The QR is unscannable there, so tap through instead. */}
-          <a
-            href={SPA_REVIEW_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 text-[13px] font-medium text-white shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition hover:bg-orange-600"
-          >
-            Open Google review
-            {/* Arrow icon */}
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-          </a>
+          {reviewLink.reviewUrl ? (
+            <>
+              <div className="my-3 flex items-center gap-2">
+                <span className="h-px flex-1 bg-zinc-200" />
+                <span className="text-[10px] uppercase tracking-wide text-zinc-400">or</span>
+                <span className="h-px flex-1 bg-zinc-200" />
+              </div>
+
+              <a
+                href={reviewLink.reviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-orange-500 text-[13px] font-medium text-white shadow-[0_8px_20px_rgba(249,115,22,0.3)] transition hover:bg-orange-600"
+              >
+                Open Google review
+                {/* Arrow icon */}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+              </a>
+            </>
+          ) : null}
         </div>
       ) : null}
 
@@ -112,7 +113,7 @@ export function SpaReviewBubble({ businessUnitName }: { businessUnitName?: strin
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
-        aria-controls="spa-review-panel"
+        aria-controls="guest-review-panel"
         className="flex h-12 items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 text-[13px] font-medium text-zinc-700 shadow-[0_12px_32px_rgba(50,25,0,0.16)] backdrop-blur-xl transition hover:bg-white hover:text-zinc-900"
       >
         {/* QR icon */}

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { GuestForm } from "@/components/guests/guest-form";
-import { SpaReviewBubble } from "@/components/guests/spa-review-bubble";
+import { GuestReviewBubble } from "@/components/guests/guest-review-bubble";
+import { resolveGuestReviewLink } from "@/lib/guest-review-links";
 import { getPublicGuestFormBusinessUnit } from "@/lib/supabase/business-units";
 
 type Props = {
@@ -14,6 +15,11 @@ export default async function WalkInGuestSlugPage({ params }: Props) {
   if (!businessUnit) {
     notFound();
   }
+
+  const reviewLink = resolveGuestReviewLink({
+    slug: businessUnit.public_guest_form_slug ?? slug,
+    isSpaForm: Boolean(businessUnit.guest_form_spa_default),
+  });
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#fdfaf7]">
@@ -91,9 +97,8 @@ export default async function WalkInGuestSlugPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Spa intake only — the review prompt is for spa guests. */}
-      {businessUnit.guest_form_spa_default ? (
-        <SpaReviewBubble businessUnitName={businessUnit.name} />
+      {reviewLink ? (
+        <GuestReviewBubble reviewLink={reviewLink} businessUnitName={businessUnit.name} />
       ) : null}
     </main>
   );
