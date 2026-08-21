@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { GuestForm } from "@/components/guests/guest-form";
+import { SpaReviewBubble } from "@/components/guests/spa-review-bubble";
 import { getPublicGuestFormBusinessUnit } from "@/lib/supabase/business-units";
 
 type Props = {
@@ -89,6 +90,11 @@ export default async function WalkInGuestSlugPage({ params }: Props) {
           </p>
         </div>
       </div>
+
+      {/* Spa intake only — the review prompt is for spa guests. */}
+      {businessUnit.guest_form_spa_default ? (
+        <SpaReviewBubble businessUnitName={businessUnit.name} />
+      ) : null}
     </main>
   );
 }
